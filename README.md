@@ -48,10 +48,10 @@ Complete rework of my current plugins, Jailbreak management and last requests ha
 * UI and sounds to make it more fun I guess.
 
 ### Admin Commands
-- [ ] **sm_stoplr / sm_abortlr** - Aborts the current active LR.
+- [x] **sm_stoplr / sm_abortlr** - Aborts the current active LR.
 
 ### Player Commands
-- [ ] **sm_lr / sm_lastrequest** - Open's the available lastrequests menu.
+- [x] **sm_lr / sm_lastrequest** - Open's the available lastrequests menu.
 
 ### Games (Lastrequests)
 - [ ] Random LR (stats and extra information is random).
@@ -70,4 +70,13 @@ Complete rework of my current plugins, Jailbreak management and last requests ha
 - [ ] Survive The Rain
 
 ### Developer API
-- [ ] SOON
+#### **Forwards**
+- [x] void Jordehi_OnLRAvailable();
+- [x] void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct);
+- [x] void Jordehi_OnLREnd(char[] lr_name, int winner, int loser); 
+#### **Natives**
+- [x] int Jordehi_PrintToChat(int client, const char[] format, any ...);
+- [x] bool Jordehi_RegisterLR(const char[] name, const char[] extrainfo);
+- [x] bool Jordehi_IsClientInLastRequest(int client);
+- [x] int Jordehi_GetClientOpponent(int client);
+- [x] void Jordehi_StopLastRequest();

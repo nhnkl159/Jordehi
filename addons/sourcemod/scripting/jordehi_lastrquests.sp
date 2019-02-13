@@ -68,8 +68,8 @@ public void OnPluginStart()
 	gA_Games = new ArrayList(sizeof(lastrequest_game_t));
 	
 	gH_Forwards_OnLRAvailable = CreateGlobalForward("Jordehi_OnLRAvailable", ET_Event);
-	gH_Forwards_OnLRStart = CreateGlobalForward("Jordehi_OnLRStart", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnLREnd = CreateGlobalForward("Jordehi_OnLREnd", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnLRStart = CreateGlobalForward("Jordehi_OnLRStart", ET_Event, Param_String, Param_Cell, Param_Cell);
+	gH_Forwards_OnLREnd = CreateGlobalForward("Jordehi_OnLREnd", ET_Event, Param_String, Param_Cell, Param_Cell);
 	
 	//cause fuck bitbuffer usermessages https://i.imgur.com/NBFonQq.png
 	if (GetUserMessageType() == UM_Protobuf)
@@ -197,6 +197,8 @@ public Action Command_AbortLR(int client, int args)
 	
 	Jordehi_StopLastRequest();
 	
+	Jordehi_PrintToChatAll("The current last request has been stopped.");
+	
 	return Plugin_Handled;
 }
 
@@ -207,13 +209,7 @@ public Action Command_LastRequest(int client, int args)
 		return Plugin_Handled;
 	}
 	
-	if (GetClientTeam(client) != CS_TEAM_T)
-	{
-		Jordehi_PrintToChat(client, "In order to use this command, you must be the last terrorist alive.");
-		return Plugin_Handled;
-	}
-	
-	if (GetTeamPlayers(2, true) > 1)
+	if (GetClientTeam(client) != CS_TEAM_T || !IsPlayerAlive(client) || GetTeamPlayers(2, true) > 1)
 	{
 		Jordehi_PrintToChat(client, "In order to use this command, you must be the last terrorist alive.");
 		return Plugin_Handled;
@@ -300,6 +296,11 @@ public int Menu_LastRequest(Menu menu, MenuAction action, int client, int param)
 			}
 		}
 		
+		if (menu.ItemCount == 0)
+		{
+			menu.AddItem("-1", "No counter terrorists found.");
+		}
+		
 		oppMenu.ExitButton = false;
 		oppMenu.Display(client, MENU_TIME_FOREVER);
 	}
@@ -375,15 +376,15 @@ void InitiateLastRequest(int client, int target)
 	panel.DrawText("================");
 	FormatEx(sTemp, 128, "Game : %s", current_lastrequest.lr_name);
 	panel.DrawText(sTemp);
-	FormatEx(sTemp, 128, "Player : %s", client);
+	FormatEx(sTemp, 128, "Player : %N", client);
 	panel.DrawText(sTemp);
-	FormatEx(sTemp, 128, "Opponent : %s", target);
+	FormatEx(sTemp, 128, "Opponent : %N", target);
 	panel.DrawText(sTemp);
 	panel.DrawText("================");
 	panel.DrawText("Extra Information : ");
 	FormatEx(sTemp, 128, "%s", current_lastrequest.lr_extrainfo);
 	panel.DrawText(sTemp);
-	//panel.CurrentKey = 9;
+	panel.CurrentKey = 9;
 	
 	Jordehi_LoopClients(i)
 	{
@@ -545,6 +546,7 @@ public int Native_StopLastRequest(Handle plugin, int numParams)
 	{
 		gB_LRStarted = false;
 		
+		
 		Call_StartForward(gH_Forwards_OnLREnd);
 		Call_PushString(current_lastrequest.lr_name);
 		Call_PushCell(gI_LRWinner);
@@ -552,10 +554,6 @@ public int Native_StopLastRequest(Handle plugin, int numParams)
 		Call_Finish();
 		Jordehi_PrintToChatAll("Game : \x07%s\x01 | Winner : \x07%N\x01 | Loser : \x07%N\x01", current_lastrequest.lr_name, gI_LRWinner, Jordehi_GetClientOpponent(gI_LRWinner));
 		//TODO: if lastrequest is running give pre weapon to winner.
-	}
-	else
-	{
-		Jordehi_PrintToChatAll("The current last request has been stopped.");
 	}
 	
 	gI_LRWinner = 0;

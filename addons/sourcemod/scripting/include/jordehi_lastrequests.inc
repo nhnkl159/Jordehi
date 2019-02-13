@@ -185,6 +185,14 @@ native int Jordehi_PrintToChat(int client, const char[] format, any ...);
 native bool Jordehi_RegisterLR(const char[] name, const char[] extrainfo);
 
 /**
+ * This native will update the extra information of the current lastrequest.
+ *
+ * @param extrainfo					Extra info to show at the panel.
+ * @return							true
+ */
+native bool Jordehi_UpdateExtraInfo(const char[] extrainfo);
+
+/**
  * This native will check if client is in lastrequest.
  *
  * @param client					Client index.

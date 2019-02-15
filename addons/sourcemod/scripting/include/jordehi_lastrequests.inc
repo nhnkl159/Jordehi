@@ -149,9 +149,10 @@ forward void Jordehi_OnLRAvailable();
  * @param lr_name  					The name of the LR that starts.
  * @param terrorist					Client index of LR terrorist.
  * @param ct 					Client index of LR counter terrorist.
+ * @param random 					If lastrequest is random.
  * @return                          null
  */
-forward void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct);
+forward void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random);
 
 /**
  * Called when an LR is finished by someone winning.

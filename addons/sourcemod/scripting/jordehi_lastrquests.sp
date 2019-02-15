@@ -24,7 +24,10 @@ bool gB_Late = false;
 bool gB_LRAvailable = false;
 bool gB_LRStarted = false;
 bool gB_InLR[MAXPLAYERS + 1]; //Probably switch to defines idk
+bool gB_Random = false;
+bool gB_Rebel = false;
 
+// === Floats === //
 
 // === Handles === //
 ArrayList gA_Games = null;
@@ -87,7 +90,7 @@ public void OnPluginStart()
 	gA_Games = new ArrayList(sizeof(lastrequest_game_t));
 	
 	gH_Forwards_OnLRAvailable = CreateGlobalForward("Jordehi_OnLRAvailable", ET_Event);
-	gH_Forwards_OnLRStart = CreateGlobalForward("Jordehi_OnLRStart", ET_Event, Param_String, Param_Cell, Param_Cell);
+	gH_Forwards_OnLRStart = CreateGlobalForward("Jordehi_OnLRStart", ET_Event, Param_String, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnLREnd = CreateGlobalForward("Jordehi_OnLREnd", ET_Event, Param_String, Param_Cell, Param_Cell);
 	
 	//cause fuck bitbuffer usermessages https://i.imgur.com/NBFonQq.png
@@ -236,6 +239,7 @@ public void OnPlayerDeath(Event e, const char[] name, bool dB)
 	{
 		gI_LRWinner = Jordehi_GetClientOpponent(victim); //Player might suicide or force to be.
 		Jordehi_StopLastRequest();
+		Command_LastRequest(gI_LRWinner, 0);
 	}
 	
 	if (GetTeamPlayers(2, true) == 1 && GetTeamPlayers(3, true) >= 1 && !gB_LRStarted && !gB_LRAvailable)
@@ -270,35 +274,11 @@ public Action Command_LastRequest(int client, int args)
 		return Plugin_Handled;
 	}
 	
-	if (GetClientTeam(client) != CS_TEAM_T || !IsPlayerAlive(client) || GetTeamPlayers(2, true) > 1)
+	if(!IsAbleToStartLR(client))
 	{
-		Jordehi_PrintToChat(client, "In order to use this command, you must be the last terrorist alive.");
 		return Plugin_Handled;
 	}
 	
-	if (GetTeamPlayers(3, true) <= 0)
-	{
-		Jordehi_PrintToChat(client, "In order to use this command, there are must be an alive counter terrorist.");
-		return Plugin_Handled;
-	}
-	
-	if (gB_LRStarted)
-	{
-		Jordehi_PrintToChat(client, "In order to use this command, there are must be no active lastrequest.");
-		return Plugin_Handled;
-	}
-	
-	if (gB_InLR[client])
-	{
-		Jordehi_PrintToChat(client, "In order to use this command, there are must be no active lastrequest.");
-		return Plugin_Handled;
-	}
-	
-	if (!gB_LRAvailable)
-	{
-		Jordehi_PrintToChat(client, "Lastrequest in not available at the moment.");
-		return Plugin_Handled;
-	}
 	
 	ShowAvailableLastRequestsMenu(client);
 	
@@ -311,6 +291,15 @@ void ShowAvailableLastRequestsMenu(int client)
 	menu.SetTitle("Choose a last request:");
 	
 	int iLength = gA_Games.Length;
+	
+	if(iLength >= 1)
+	{
+		menu.AddItem("rand", "Random LR");
+	}
+	
+	menu.AddItem("rebel", "Rebel");
+	
+	SortADTArray(gA_Games, Sort_Descending, Sort_Integer);
 	
 	for (int i = 0; i < iLength; i++)
 	{
@@ -340,10 +329,34 @@ public int Menu_LastRequest(Menu menu, MenuAction action, int client, int param)
 		char sParam[32];
 		GetMenuItem(menu, param, sParam, sizeof(sParam));
 		
-		int iInfo = StringToInt(sParam);
-		GetLRByID(iInfo, current_lastrequest);
+		if(!IsAbleToStartLR(client))
+		{
+			return 0;
+		}
 		
-		Menu oppMenu = new Menu(Menu_OPPMenu);
+		int iInfo = StringToInt(sParam);
+		
+		if(StrEqual(sParam, "rebel"))
+		{
+			gB_Rebel = true;
+			GivePlayerItem(client, "weapon_negev");
+			GivePlayerItem(client, "weapon_deagle");
+			SetEntityHealth(client, 350);
+			return 0;
+		}
+		
+		
+		if(StrEqual(sParam, "rand"))
+		{
+			iInfo = GetRandomInt(1, gA_Games.Length);
+			gB_Random = true;
+		}
+
+		
+		GetLRByID(iInfo, current_lastrequest);
+		InitiateLastRequest(client, client, gB_Random);
+		
+		/*Menu oppMenu = new Menu(Menu_OPPMenu);
 		oppMenu.SetTitle("Choose your opponent:");
 		
 		Jordehi_LoopClients(i)
@@ -363,7 +376,7 @@ public int Menu_LastRequest(Menu menu, MenuAction action, int client, int param)
 		}
 		
 		oppMenu.ExitButton = false;
-		oppMenu.Display(client, MENU_TIME_FOREVER);
+		oppMenu.Display(client, MENU_TIME_FOREVER);*/
 	}
 	else if (action == MenuAction_End)
 	{
@@ -382,9 +395,14 @@ public int Menu_OPPMenu(Menu menu, MenuAction action, int client, int param)
 		char sParam[32];
 		GetMenuItem(menu, param, sParam, sizeof(sParam));
 		
+		if(!IsAbleToStartLR(client))
+		{
+			return 0;
+		}
+		
 		int target = StringToInt(sParam);
 		
-		InitiateLastRequest(client, target);
+		InitiateLastRequest(client, target, gB_Random);
 	}
 	else if (action == MenuAction_End)
 	{
@@ -396,7 +414,7 @@ public int Menu_OPPMenu(Menu menu, MenuAction action, int client, int param)
 	return 0;
 }
 
-void InitiateLastRequest(int client, int target)
+void InitiateLastRequest(int client, int target, bool bRandom)
 {
 	if (!Jordehi_IsClientValid(client) || !Jordehi_IsClientValid(target))
 	{
@@ -406,13 +424,6 @@ void InitiateLastRequest(int client, int target)
 	
 	EmitSoundToAll("jordehi/jordehi_lr_start.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
 	
-	Call_StartForward(gH_Forwards_OnLRStart);
-	Call_PushString(current_lastrequest.lr_name);
-	Call_PushCell(client);
-	Call_PushCell(target);
-	Call_Finish();
-	
-	
 	gB_LRStarted = true;
 	
 	gB_InLR[client] = true;
@@ -420,6 +431,13 @@ void InitiateLastRequest(int client, int target)
 	
 	gI_LROpponent[client] = target;
 	gI_LROpponent[target] = client;
+	
+	Call_StartForward(gH_Forwards_OnLRStart);
+	Call_PushString(current_lastrequest.lr_name);
+	Call_PushCell(client);
+	Call_PushCell(target);
+	Call_PushCell(bRandom);
+	Call_Finish();
 	
 	SetEntityHealth(client, 100);
 	SetEntityHealth(target, 100);
@@ -450,11 +468,14 @@ void InitiateLastRequest(int client, int target)
 	
 	Jordehi_LoopClients(i)
 	{
-		SendPanelToClient(panel, i, LastrequestPanel_Callback, MENU_TIME_FOREVER);
+		if(i != client)
+		{
+			SendPanelToClient(panel, i, LastrequestPanel_Handler, MENU_TIME_FOREVER);
+		}
 	}
 }
 
-public int LastrequestPanel_Callback(Menu menu, MenuAction action, int client, int item)
+public int LastrequestPanel_Handler(Menu menu, MenuAction action, int client, int item)
 {
 	if (action == MenuAction_Select)
 	{
@@ -534,6 +555,49 @@ void SavePrimaryAndSecondary(int client)
 	}
 }
 
+bool IsAbleToStartLR(int client)
+{
+	if (GetClientTeam(client) != CS_TEAM_T || !IsPlayerAlive(client) || GetTeamPlayers(2, true) > 1)
+	{
+		Jordehi_PrintToChat(client, "In order to use this command, you must be the last terrorist alive.");
+		return false;
+	}
+	
+	/*if (GetTeamPlayers(3, true) <= 0)
+	{
+		Jordehi_PrintToChat(client, "In order to use this command, there are must be an alive counter terrorist.");
+		return false;
+	}
+	
+	if (gB_LRStarted)
+	{
+		Jordehi_PrintToChat(client, "In order to use this command, there are must be no active lastrequest.");
+		return false;
+	}
+	
+	if (gB_InLR[client])
+	{
+		Jordehi_PrintToChat(client, "In order to use this command, there are must be no active lastrequest.");
+		return false;
+	}
+	
+	if (!gB_LRAvailable)
+	{
+		Jordehi_PrintToChat(client, "Lastrequest in not available at the moment.");
+		return false;
+	}
+	
+	*/
+	
+	if(gB_Rebel)
+	{
+		Jordehi_PrintToChat(client, "Lastrequest in not available after you choosed to rebel.");
+		return false;
+	}
+	
+	return true;
+}
+
 //Stolen from shavit Kappa
 bool GetLRByID(int lr_id, lastrequest_game_t game)
 {
@@ -553,6 +617,52 @@ bool GetLRByID(int lr_id, lastrequest_game_t game)
 	}
 	
 	return false;
+}
+
+bool IsLRNameExist(char[] sName)
+{
+	int iLength = gA_Games.Length;
+	
+	for (int i = 0; i < iLength; i++)
+	{
+		lastrequest_game_t tempgame;
+		gA_Games.GetArray(i, tempgame);
+		
+		if (StrEqual(sName, tempgame.lr_name))
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+stock int GetLRTerrorist()
+{
+	int iTerrorist = 0;
+	Jordehi_LoopClients(i)
+	{
+		if (gB_InLR[i] && GetClientTeam(i) == 2)
+		{
+			iTerrorist = i;
+		}
+	}
+	
+	return iTerrorist;
+}
+
+stock int GetLRCT()
+{
+	int iCTerrorist = 0;
+	Jordehi_LoopClients(i)
+	{
+		if (gB_InLR[i] && GetClientTeam(i) == 3)
+		{
+			iCTerrorist = i;
+		}
+	}
+	
+	return iCTerrorist;
 }
 
 public int Native_PrintToChat(Handle handler, int numParams)
@@ -600,16 +710,20 @@ public int Native_RegisterLR(Handle plugin, int numParams)
 	
 	int iID = gA_Games.Length + 1;
 	
-	lastrequest_game_t game;
-	game.lr_id = iID;
-	FormatEx(game.lr_name, sizeof(game.lr_name), sName);
-	FormatEx(game.lr_extrainfo, sizeof(game.lr_extrainfo), sExtraInfo);
+	if(!IsLRNameExist(sName))
+	{
+		lastrequest_game_t game;
+		game.lr_id = iID;
+		FormatEx(game.lr_name, sizeof(game.lr_name), sName);
+		FormatEx(game.lr_extrainfo, sizeof(game.lr_extrainfo), sExtraInfo);
+		
+		gA_Games.PushArray(game);
+		
+		LogMessage("[Jordehi Lastrequests] ID: %d - Name: %s", iID, sName);
+		return true;
+	}
 	
-	gA_Games.PushArray(game);
-	
-	LogMessage("[Jordehi Lastrequests] ID: %d - Name: %s", iID, sName);
-	
-	return true;
+	return false;
 }
 
 public int Native_UpdateExtraInfo(Handle plugin, int numParams)
@@ -619,6 +733,29 @@ public int Native_UpdateExtraInfo(Handle plugin, int numParams)
 	GetNativeString(1, sExtraInfo, sizeof(sExtraInfo));
 	
 	FormatEx(current_lastrequest.lr_extrainfo, sizeof(current_lastrequest.lr_extrainfo), sExtraInfo);
+	
+	char sTemp[128];
+	
+	int iTerrorist = GetLRTerrorist();
+
+	Panel panel = new Panel();
+	panel.SetTitle("[Jordehi] Current Last Request :", false);
+	panel.DrawText("================");
+	FormatEx(sTemp, 128, " - Game : %s", current_lastrequest.lr_name);
+	panel.DrawText(sTemp);
+	FormatEx(sTemp, 128, " - Player : %N", iTerrorist);
+	panel.DrawText(sTemp);
+	FormatEx(sTemp, 128, " - Opponent : %N", Jordehi_GetClientOpponent(iTerrorist));
+	panel.DrawText(sTemp);
+	panel.DrawText("================");
+	FormatEx(sTemp, 128, "%s", current_lastrequest.lr_extrainfo);
+	panel.DrawText(sTemp);
+	panel.CurrentKey = 9;
+	
+	Jordehi_LoopClients(i)
+	{
+		SendPanelToClient(panel, i, LastrequestPanel_Handler, MENU_TIME_FOREVER);
+	}
 	
 	return true;
 }
@@ -638,18 +775,30 @@ public int Native_GetClientOpponent(Handle plugin, int numParams)
 
 public int Native_StopLastRequest(Handle plugin, int numParams)
 {
+	if (Jordehi_IsClientValid(gI_LRWinner) && Jordehi_IsClientValid(Jordehi_GetClientOpponent(gI_LRWinner)))
+	{
+		Call_StartForward(gH_Forwards_OnLREnd);
+		Call_PushString(current_lastrequest.lr_name);
+		Call_PushCell(gI_LRWinner);
+		Call_PushCell(Jordehi_GetClientOpponent(gI_LRWinner));
+		Call_Finish();
+	}
+	else
+	{
+		int iTerrorist = GetLRTerrorist();
+		Call_StartForward(gH_Forwards_OnLREnd);
+		Call_PushString(current_lastrequest.lr_name);
+		Call_PushCell(iTerrorist);
+		Call_PushCell(Jordehi_GetClientOpponent(iTerrorist));
+		Call_Finish();
+	}
+	
 	if(gB_LRStarted)
 	{
 		gB_LRStarted = false;
 		
 		if (Jordehi_IsClientValid(gI_LRWinner) && Jordehi_IsClientValid(Jordehi_GetClientOpponent(gI_LRWinner)))
 		{
-			Call_StartForward(gH_Forwards_OnLREnd);
-			Call_PushString(current_lastrequest.lr_name);
-			Call_PushCell(gI_LRWinner);
-			Call_PushCell(Jordehi_GetClientOpponent(gI_LRWinner));
-			Call_Finish();
-			
 			Jordehi_PrintToChatAll("Game : \x07%s\x01 | Winner : \x07%N\x01 | Loser : \x07%N\x01", current_lastrequest.lr_name, gI_LRWinner, Jordehi_GetClientOpponent(gI_LRWinner));
 			
 			if(GetClientTeam(gI_LRWinner) == 2)
@@ -676,11 +825,14 @@ public int Native_StopLastRequest(Handle plugin, int numParams)
 	}
 	
 	gI_LRWinner = 0;
+	gB_Rebel = false;
+	gB_Random = false;
 	
 	Jordehi_LoopClients(i)
 	{
 		if (gB_InLR[i])
 		{
+			SetEntityHealth(i, 100);
 			gB_InLR[i] = false;
 		}
 		else if(gI_LROpponent[i])

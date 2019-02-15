@@ -54,11 +54,12 @@ Complete rework of my current plugins, Jailbreak management and last requests ha
 - [x] **sm_lr / sm_lastrequest** - Open's the available lastrequests menu.
 
 ### Games (Lastrequests)
-- [ ] Random LR (stats and extra information is random).
-- [ ] Rebel
-- [ ] Dodgeball
-- [ ] Shot4Shot / Mag4Mag
-- [ ] Knife fight (Have backstab option)
+- [x] Random LR (stats and extra information is random).
+- [x] Rebel
+- [x] Dodgeball
+- [x] Shot4Shot
+- [x] Mag4Mag
+- [x] Knife fight
 - [ ] Headshots
 - [ ] Russian Roulette
 - [ ] NoScope Battle

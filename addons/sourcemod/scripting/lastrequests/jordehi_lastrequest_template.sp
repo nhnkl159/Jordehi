@@ -16,6 +16,8 @@
 // === Booleans === //
 bool gB_LRActivated = false;
 
+// === Floats === //
+
 // === Handles === //
 
 public Plugin myinfo = 
@@ -34,12 +36,20 @@ public void OnAllPluginsLoaded()
 	gB_LRActivated = false;
 }
 
-public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct)
+public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random)
 {
 	if(StrEqual(lr_name, LR_NAME))
 	{
 		gB_LRActivated = true;
 	}
+	
+	if(!Jordehi_IsClientValid(terrorist) && !Jordehi_IsClientValid(ct))
+	{
+		Jordehi_StopLastRequest();
+		return;
+	}
+	
+	Jordehi_UpdateExtraInfo("");
 }
 
 public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)

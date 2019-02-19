@@ -2,6 +2,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <sdkhooks>
 #include <jordehi_lastrequests>
 
 #pragma newdecls required
@@ -45,6 +46,7 @@ char gS_CSGOPistolNames[][] =
 
 // === Booleans === //
 bool gB_LRActivated = false;
+bool gB_HeadshotsOnly = false;
 
 // === Floats === //
 
@@ -79,7 +81,7 @@ public void OnPlayerFire(Event e, const char[] name, bool dB)
 		return;
 	}
 	
-	if(gB_LRActivated && Jordehi_IsClientInLastRequest(client))
+	if(gB_LRActivated && Jordehi_IsClientInLastRequest(client) && gI_PlayerTurn == client)
 	{
 		gI_PlayerTurn = Jordehi_GetClientOpponent(client);
 		int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
@@ -94,6 +96,10 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	if(StrEqual(lr_name, LR_NAME))
 	{
 		gB_LRActivated = true;
+		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
+		SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
 	}
 	
 	if(!Jordehi_IsClientValid(terrorist) && !Jordehi_IsClientValid(ct))
@@ -106,7 +112,12 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	{
 		if(random)
 		{
-			StartShot4Shot(terrorist, GetRandomInt(1, sizeof(gS_CSGOPistols)));
+			int iRand = GetRandomInt(1, 2);
+			if(iRand == 2)
+			{
+				gB_HeadshotsOnly = true;
+			}
+			InitiateLR(terrorist, GetRandomInt(1, sizeof(gS_CSGOPistols)));
 			return;
 		}
 		
@@ -133,7 +144,7 @@ public int MenuHandler_Weapons(Menu menu, MenuAction action, int client, int ite
 
 		gI_Weapon = StringToInt(sInfo);
 		
-		StartShot4Shot(client, gI_Weapon);
+		OpenSettingsMenu(client);
 	}
 
 	else if(action == MenuAction_End)
@@ -145,8 +156,75 @@ public int MenuHandler_Weapons(Menu menu, MenuAction action, int client, int ite
 	return 0;
 }
 
-void StartShot4Shot(int client, int choice)
+public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 {
+	if(gB_LRActivated)
+	{
+		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
+		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
+		gB_LRActivated = false;
+		gB_HeadshotsOnly = false;
+	}
+}
+
+void OpenSettingsMenu(int client)
+{
+	char sTemp[32];
+	FormatEx(sTemp, 32, "Headshots only : %s", gB_HeadshotsOnly ? "Yes" : "No");
+	Menu m = new Menu(Settings_Handler);
+	m.SetTitle("Settings Menu :");
+	m.AddItem("1", sTemp);
+	m.AddItem("0", "End Settings");
+	m.ExitButton = false;
+	m.Display(client, 30);
+}
+
+public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(item, sInfo, 8);
+		int iItem = StringToInt(sInfo);
+		switch(iItem)
+		{
+			case 0:
+			{
+				InitiateLR(client, gI_Weapon);
+			}
+			case 1:
+			{
+				gB_HeadshotsOnly = !gB_HeadshotsOnly;
+			}
+		}
+		if(iItem != 0)
+		{
+			OpenSettingsMenu(client);
+		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		Jordehi_StopLastRequest();
+		delete menu;
+	}
+
+	return 0;
+}
+
+void InitiateLR(int client, int choice)
+{
+	if(!gB_LRActivated)
+	{
+		return;
+	}
+	
+	char sTemp[32];
+	FormatEx(sTemp, 32, "- Headshots only enabled : %s", gB_HeadshotsOnly ? "Yes" : "No");
+	Jordehi_UpdateExtraInfo(sTemp);
+	
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
 	
@@ -174,9 +252,59 @@ void StartShot4Shot(int client, int choice)
 	SetWeaponAmmo(gI_PlayerTurn, iWeapon, 1, 0);
 }
 
-public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
+public Action OnWeaponCanUse(int client, int weapon)
 {
-	gB_LRActivated = false;
+	if (!gB_LRActivated || !Jordehi_IsClientInLastRequest(client))
+	{
+		return Plugin_Continue;
+	}
+	
+	char[] sWeapon = new char[32];
+	GetClientWeapon(client, sWeapon, 32);
+	
+	if(!StrEqual(sWeapon, gS_CSGOPistols[gI_Weapon]))
+	{
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
+}
+
+public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
+{
+	if(!Jordehi_IsClientValid(attacker))
+	{
+		return Plugin_Continue;
+	}
+	
+	if(gB_LRActivated)
+	{
+		char[] sWeapon = new char[32];
+		GetClientWeapon(attacker, sWeapon, 32);
+	
+		if(!StrEqual(sWeapon, gS_CSGOPistols[gI_Weapon]))
+		{
+			damage = 0.0;
+			return Plugin_Changed;
+		}
+		//IDK IF SHOULD BE LIKE THAT
+		if(gB_HeadshotsOnly && damagetype & CS_DMG_HEADSHOT == 0)
+		{
+			damage = 0.0;
+			return Plugin_Changed;
+		}
+	}
+	
+	return Plugin_Continue;
+}
+
+public Action CS_OnCSWeaponDrop(int client, int weapon)
+{
+	if(gB_LRActivated)
+	{
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
 }
 
 //Thanks shavit

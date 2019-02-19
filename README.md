@@ -60,8 +60,7 @@ Complete rework of my current plugins, Jailbreak management and last requests ha
 - [x] Shot4Shot
 - [x] Mag4Mag
 - [x] Knife fight
-- [ ] Headshots
-- [ ] Russian Roulette
+- [x] Russian Roulette
 - [ ] NoScope Battle
 - [ ] DeagleToss
 - [ ] FreeDay (Use JB Management API)

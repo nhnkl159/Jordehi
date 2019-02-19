@@ -11,6 +11,7 @@
 #define PLUGIN_NAME "Jordehi - Last Request - " ... LR_NAME
 
 // === Integers === //
+int gI_Choice = 1;
 
 // === Strings === //
 
@@ -47,6 +48,8 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	if(StrEqual(lr_name, LR_NAME))
 	{
 		gB_LRActivated = true;
+		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
 	}
 	
 	if(!Jordehi_IsClientValid(terrorist) || !Jordehi_IsClientValid(ct))
@@ -59,19 +62,84 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	{
 		if(random)
 		{
-			StartKnifeFight(terrorist, GetRandomInt(1, 4));
+			InitiateLR(terrorist, GetRandomInt(1, 4));
 			return;
 		}
-		
-		Menu menu = new Menu(KnifeModes_Handler);
-		menu.SetTitle("Choose knife mode : ");
-		menu.AddItem("1", "Normal Knife Fight");
-		menu.AddItem("2", "Backstabs only");
-		menu.AddItem("3", "The Flash");
-		menu.AddItem("4", "Party Mode");
-		menu.ExitButton = false;
-		menu.Display(terrorist, 60);
+		OpenSettingsMenu(terrorist);
 	}
+}
+
+
+void OpenSettingsMenu(int client)
+{
+	char sTemp[32];
+	switch(gI_Choice)
+	{
+		case 1:
+		{
+			FormatEx(sTemp, 32, "Current Mode : Normal Knife Fight");
+		}
+		case 2:
+		{
+			FormatEx(sTemp, 32, "Current Mode : Backstabs only");
+		}
+		case 3:
+		{
+			FormatEx(sTemp, 32, "Current Mode : The Flash");
+		}
+		case 4:
+		{
+			FormatEx(sTemp, 32, "Current Mode : Party Mode");
+		}
+	}
+	
+	
+	Menu m = new Menu(Settings_Handler);
+	m.SetTitle("Settings Menu :");
+	m.AddItem("1", sTemp);
+	m.AddItem("0", "End Settings");
+	m.ExitButton = false;
+	m.Display(client, 30);
+}
+
+public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(item, sInfo, 8);
+		int iItem = StringToInt(sInfo);
+		switch(iItem)
+		{
+			case 0:
+			{
+				InitiateLR(client, gI_Choice);
+			}
+			case 1:
+			{
+				Menu m = new Menu(KnifeModes_Handler);
+				m.SetTitle("Choose knife mode : ");
+				m.AddItem("1", "Normal Knife Fight");
+				m.AddItem("2", "Backstabs only");
+				m.AddItem("3", "The Flash");
+				m.AddItem("4", "Party Mode");
+				m.ExitButton = false;
+				m.Display(client, 60);
+			}
+		}
+		if(iItem != 0)
+		{
+			OpenSettingsMenu(client);
+		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		Jordehi_StopLastRequest();
+		delete menu;
+	}
+
+	return 0;
 }
 
 public int KnifeModes_Handler(Menu menu, MenuAction action, int client, int item)
@@ -81,10 +149,7 @@ public int KnifeModes_Handler(Menu menu, MenuAction action, int client, int item
 		char info[32];
 		menu.GetItem(item, info, sizeof(info));
 		
-		int iChoice = StringToInt(info);
-
-		StartKnifeFight(client, iChoice);
-		
+		gI_Choice = StringToInt(info);
 	}
 	else if (action == MenuAction_End)
 	{
@@ -93,7 +158,34 @@ public int KnifeModes_Handler(Menu menu, MenuAction action, int client, int item
 	}
 }
 
-void StartKnifeFight(int client, int choice)
+public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
+{
+	if(gB_LRActivated)
+	{
+		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		gB_LRActivated = false;
+		gI_Choice = 1;
+	}
+	if(gB_Backstab)
+	{
+		SDKUnhook(winner, SDKHook_TraceAttack, OnTraceAttack);
+		SDKUnhook(loser, SDKHook_TraceAttack, OnTraceAttack);
+		gB_Backstab = false;
+	}
+	if(Jordehi_IsClientValid(winner))
+	{
+		SetEntPropFloat(winner, Prop_Data, "m_flLaggedMovementValue", 1.0);
+		DrugPlayer(winner, false);
+	}
+	if(Jordehi_IsClientValid(loser))
+	{
+		SetEntPropFloat(loser, Prop_Data, "m_flLaggedMovementValue", 1.0);
+		DrugPlayer(loser, false);
+	}
+}
+
+void InitiateLR(int client, int choice)
 {
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
@@ -125,29 +217,31 @@ void StartKnifeFight(int client, int choice)
 		}
 	}
 	
+	if(!gB_LRActivated)
+	{
+		return;
+	}
+	
 	GivePlayerItem(terrorist, "weapon_knife");
 	GivePlayerItem(ct, "weapon_knife");
 }
 
-public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
+public Action OnWeaponCanUse(int client, int weapon)
 {
-	gB_LRActivated = false;
-	if(gB_Backstab)
+	if (!gB_LRActivated || !Jordehi_IsClientInLastRequest(client))
 	{
-		SDKUnhook(winner, SDKHook_TraceAttack, OnTraceAttack);
-		SDKUnhook(loser, SDKHook_TraceAttack, OnTraceAttack);
-		gB_Backstab = false;
+		return Plugin_Continue;
 	}
-	if(Jordehi_IsClientValid(winner))
+	
+	char[] sWeapon = new char[32];
+	GetClientWeapon(attacker, sWeapon, 32);
+	
+	if(!StrEqual(sWeapon, "weapon_knife"))
 	{
-		SetEntPropFloat(winner, Prop_Data, "m_flLaggedMovementValue", 1.0);
-		DrugPlayer(winner, false);
+		return Plugin_Handled;
 	}
-	if(Jordehi_IsClientValid(loser))
-	{
-		SetEntPropFloat(loser, Prop_Data, "m_flLaggedMovementValue", 1.0);
-		DrugPlayer(loser, false);
-	}
+	
+	return Plugin_Continue;
 }
 
 public Action OnTraceAttack(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &ammotype, int hitbox, int hitgroup)

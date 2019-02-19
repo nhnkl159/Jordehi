@@ -16,6 +16,7 @@
 
 // === Booleans === //
 bool gB_LRActivated = false;
+bool gB_Gravity = false;
 
 // === Floats === //
 
@@ -42,6 +43,8 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	if(StrEqual(lr_name, LR_NAME))
 	{
 		gB_LRActivated = true;
+		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
 	}
 	
 	if(!Jordehi_IsClientValid(terrorist) || !Jordehi_IsClientValid(ct))
@@ -52,26 +55,114 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	
 	if(gB_LRActivated)
 	{
-		SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
-		
-		SetEntityHealth(terrorist, 1);
-		SetEntityHealth(ct, 1);
-	
-		GivePlayerItem(terrorist, "weapon_knife");
-		GivePlayerItem(terrorist, "weapon_flashbang");
-		
-		GivePlayerItem(ct, "weapon_knife");
-		GivePlayerItem(ct, "weapon_flashbang");
-	
-		SetEntProp(terrorist, Prop_Data, "m_CollisionGroup", 5);
-		SetEntProp(ct, Prop_Data, "m_CollisionGroup", 5);
-		
-		CreateTimer(0.5, Cheating_Timer, terrorist, TIMER_REPEAT);
-		CreateTimer(0.5, Cheating_Timer, ct, TIMER_REPEAT);
+		OpenSettingsMenu(terrorist);
+	}
+}
+
+
+public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
+{
+	if(gB_LRActivated)
+	{
+		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
+		gB_LRActivated = false;
+		gB_Gravity = false;
+	}
+	if(Jordehi_IsClientValid(winner))
+	{
+		SetEntProp(winner, Prop_Data, "m_CollisionGroup", 2);
+		SetEntityGravity(winner, 1.0);
+	}
+	if(Jordehi_IsClientValid(loser))
+	{
+		SetEntProp(loser, Prop_Data, "m_CollisionGroup", 2);
+		SetEntityGravity(loser, 1.0);
+	}
+}
+
+void OpenSettingsMenu(int client)
+{
+	char sTemp[32];
+	FormatEx(sTemp, 32, "Enable Gravity : %s", gB_Gravity ? "Yes" : "No");
+	Menu m = new Menu(Settings_Handler);
+	m.SetTitle("Settings Menu :");
+	m.AddItem("1", sTemp);
+	m.AddItem("0", "End Settings");
+	m.ExitButton = false;
+	m.Display(client, 30);
+}
+
+public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(item, sInfo, 8);
+		int iItem = StringToInt(sInfo);
+		switch(iItem)
+		{
+			case 0:
+			{
+				InitiateLR(client);
+			}
+			case 1:
+			{
+				gB_Gravity = !gB_Gravity;
+			}
+		}
+		if(iItem != 0)
+		{
+			OpenSettingsMenu(client);
+		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		Jordehi_StopLastRequest();
+		delete menu;
+	}
+
+	return 0;
+}
+
+
+void InitiateLR(int client)
+{
+	if(!gB_LRActivated)
+	{
+		return;
 	}
 	
-	Jordehi_UpdateExtraInfo("");
+	char sTemp[32];
+	FormatEx(sTemp, 32, "- Gravity enabled : %s", gB_Gravity ? "Yes" : "No");
+	Jordehi_UpdateExtraInfo(sTemp);
+	
+	int terrorist = client;
+	int ct = Jordehi_GetClientOpponent(terrorist);
+	
+	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
+	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
+	
+	
+	SetEntityHealth(terrorist, 1);
+	SetEntityHealth(ct, 1);
+
+	GivePlayerItem(terrorist, "weapon_flashbang");
+	GivePlayerItem(ct, "weapon_flashbang");
+	
+	if(gB_Gravity)
+	{
+		SetEntityGravity(terrorist, 1.5);
+		SetEntityGravity(ct, 1.5);
+	}
+
+	SetEntProp(terrorist, Prop_Data, "m_CollisionGroup", 5);
+	SetEntProp(ct, Prop_Data, "m_CollisionGroup", 5);
+	
+	CreateTimer(0.5, Cheating_Timer, terrorist, TIMER_REPEAT);
+	CreateTimer(0.5, Cheating_Timer, ct, TIMER_REPEAT);
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
@@ -103,8 +194,7 @@ public Action Timer_AutoSwitch(Handle Timer, any client)
 	{
 		return Plugin_Stop;
 	}
-
-	FakeClientCommand(client, "use weapon_knife");
+	
 	GivePlayerItem(client, "weapon_flashbang");
 	FakeClientCommand(client, "use weapon_flashbang");
 
@@ -153,16 +243,20 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	return Plugin_Continue;
 }
 
-public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
+public Action OnWeaponCanUse(int client, int weapon)
 {
-	gB_LRActivated = false;
-	SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
-	if(Jordehi_IsClientValid(winner))
+	if (!gB_LRActivated || !Jordehi_IsClientInLastRequest(client))
 	{
-		SetEntProp(winner, Prop_Data, "m_CollisionGroup", 2);
+		return Plugin_Continue;
 	}
-	if(Jordehi_IsClientValid(loser))
+	
+	char[] sWeapon = new char[32];
+	GetClientWeapon(attacker, sWeapon, 32);
+	
+	if(!StrEqual(sWeapon, "weapon_flashbang"))
 	{
-		SetEntProp(loser, Prop_Data, "m_CollisionGroup", 2);
+		return Plugin_Handled;
 	}
+	
+	return Plugin_Continue;
 }

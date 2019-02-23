@@ -222,7 +222,7 @@ void InitiateLR(int client, int choice)
 	}
 	
 	char sTemp[32];
-	FormatEx(sTemp, 32, "- Headshots only enabled : %s", gB_HeadshotsOnly ? "Yes" : "No");
+	FormatEx(sTemp, 32, "- Weapon : %s \n- Headshots only enabled : %s", gS_CSGOPistols[choice], gB_HeadshotsOnly ? "Yes" : "No");
 	Jordehi_UpdateExtraInfo(sTemp);
 	
 	int terrorist = client;

@@ -7,41 +7,29 @@
 
 #pragma newdecls required
 
-#define LR_NAME "Shot4Shot"
+#define LR_NAME "NoScope Battle"
 #define PLUGIN_NAME "Jordehi - Last Request - " ... LR_NAME
 
 // === Integers === //
 int gI_Weapon;
-int gI_PlayerTurn;
 int gI_Ammo = -1;
+int gI_NextSecondaryAttack = -1;
 
 // === Strings === //
-char gS_CSGOPistols[][] =
+char gS_CSGOSnipers[][] =
 {
-    "weapon_deagle",
-    "weapon_revolver",
-    "weapon_glock",
-    "weapon_fiveseven",
-    "weapon_usp_silencer",
-    "weapon_p250",
-    "weapon_cz75a",
-    "weapon_tec9",
-    "weapon_hkp2000",
-    "weapon_elite"
+    "weapon_awp",
+    "weapon_g3sg1",
+    "weapon_scar20",
+    "weapon_ssg08"
 };
 
-char gS_CSGOPistolNames[][] =
+char gS_CSGOSniperNames[][] =
 {
-    "Night Hawk .50C (Desert Eagle)",
-    "R8 Revolver",
-    "9×19mm Sidearm (Glock 18)",
-    "FN Five-seveN",
-    "H&K USP45 Tactical (USP-S)",
-    "P250",
-    "CZ75-Auto",
-    "Tec-9",
-    "P2000",
-    ".40 Dual Elites (Dual Berettas)"
+    "Magnum Sniper Rifle (AWP)",
+    "D3/AU-1 (G3SG1)",
+    "SCAR-20",
+    "SSG 08 (Scout)"
 };
 
 // === Booleans === //
@@ -66,6 +54,7 @@ public void OnAllPluginsLoaded()
 	HookEvent("weapon_fire", OnPlayerFire);
 	
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
+	gI_NextSecondaryAttack = FindSendPropInfo("CBaseCombatWeapon", "m_flNextSecondaryAttack");
 	
 	Jordehi_RegisterLR(LR_NAME, "");
 	
@@ -81,18 +70,10 @@ public void OnPlayerFire(Event e, const char[] name, bool dB)
 		return;
 	}
 	
-	if(gB_LRActivated && Jordehi_IsClientInLastRequest(client) && gI_PlayerTurn == client)
+	if(gB_LRActivated && Jordehi_IsClientInLastRequest(client))
 	{
 		int iWeapon = GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY);
-		int iClip1 = GetEntProp(iWeapon, Prop_Data, "m_iClip1");
-
-		if(iClip1 == 1)
-		{
-			gI_PlayerTurn = Jordehi_GetClientOpponent(client);
-			iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
-
-			SetWeaponAmmo(gI_PlayerTurn, iWeapon, 7, 0);
-		}
+		SetWeaponAmmo(client, iWeapon, -1, 1000);
 	}
 }
 
@@ -105,6 +86,8 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
 		SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
+		SDKHook(terrorist, SDKHook_PreThink, PreThink);
+		SDKHook(ct, SDKHook_PreThink, PreThink);
 	}
 	
 	if(!Jordehi_IsClientValid(terrorist) && !Jordehi_IsClientValid(ct))
@@ -122,18 +105,18 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 			{
 				gB_HeadshotsOnly = true;
 			}
-			InitiateLR(terrorist, GetRandomInt(1, sizeof(gS_CSGOPistols)));
+			InitiateLR(terrorist, GetRandomInt(1, sizeof(gS_CSGOSnipers)));
 			return;
 		}
 		
 		Menu menu = new Menu(MenuHandler_Weapons);
 		menu.SetTitle("Choose weapon : ");
-		for(int i = 0; i < sizeof(gS_CSGOPistols); i++)
+		for(int i = 0; i < sizeof(gS_CSGOSnipers); i++)
 		{
 			char[] sMenuInfo = new char[8];
 			IntToString(i, sMenuInfo, 8);
 
-			menu.AddItem(sMenuInfo, gS_CSGOPistolNames[i]);
+			menu.AddItem(sMenuInfo, gS_CSGOSniperNames[i]);
 		}
 		menu.ExitButton = false;
 		menu.Display(terrorist, 60);
@@ -169,6 +152,8 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
 		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
+		SDKUnhook(winner, SDKHook_PreThink, PreThink);
+		SDKUnhook(loser, SDKHook_PreThink, PreThink);
 		gB_LRActivated = false;
 		gB_HeadshotsOnly = false;
 	}
@@ -227,34 +212,22 @@ void InitiateLR(int client, int choice)
 	}
 	
 	char sTemp[32];
-	FormatEx(sTemp, 32, "- Weapon : %s \n- Headshots only enabled : %s", gS_CSGOPistols[choice], gB_HeadshotsOnly ? "Yes" : "No");
+	FormatEx(sTemp, 32, "- Weapon : %s \n- Headshots only enabled : %s", gS_CSGOSniperNames[choice], gB_HeadshotsOnly ? "Yes" : "No");
 	Jordehi_UpdateExtraInfo(sTemp);
 	
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
 	
 	GivePlayerItem(terrorist, "weapon_knife");
-	GivePlayerItem(terrorist, gS_CSGOPistols[choice]);
+	GivePlayerItem(terrorist, gS_CSGOSnipers[choice]);
 
 	GivePlayerItem(ct, "weapon_knife");
-	GivePlayerItem(ct, gS_CSGOPistols[choice]);
+	GivePlayerItem(ct, gS_CSGOSnipers[choice]);
 	
-	int iRand = GetRandomInt(1, 2);
-	switch(iRand)
-	{
-		case 1:
-		{
-			gI_PlayerTurn = terrorist;
-		}
-		case 2:
-		{
-			gI_PlayerTurn = ct;
-		}
-	}
-	
-	int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
-	
-	SetWeaponAmmo(gI_PlayerTurn, iWeapon, 7, 0);
+	int iWeapon = GetPlayerWeaponSlot(terrorist, CS_SLOT_SECONDARY);
+	SetWeaponAmmo(terrorist, iWeapon, -1, 1000);
+	iWeapon = GetPlayerWeaponSlot(ct, CS_SLOT_SECONDARY);
+	SetWeaponAmmo(ct, iWeapon, -1, 1000);
 }
 
 public Action OnWeaponCanUse(int client, int weapon)
@@ -267,7 +240,7 @@ public Action OnWeaponCanUse(int client, int weapon)
 	char[] sWeapon = new char[32];
 	GetClientWeapon(client, sWeapon, 32);
 	
-	if(!StrEqual(sWeapon, gS_CSGOPistols[gI_Weapon]))
+	if(!StrEqual(sWeapon, gS_CSGOSnipers[gI_Weapon]))
 	{
 		return Plugin_Handled;
 	}
@@ -287,7 +260,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		char[] sWeapon = new char[32];
 		GetClientWeapon(attacker, sWeapon, 32);
 	
-		if(!StrEqual(sWeapon, gS_CSGOPistols[gI_Weapon]))
+		if(!StrEqual(sWeapon, gS_CSGOSnipers[gI_Weapon]))
 		{
 			damage = 0.0;
 			return Plugin_Changed;
@@ -310,6 +283,21 @@ public Action CS_OnCSWeaponDrop(int client, int weapon)
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
+}
+
+public void PreThink(int client)
+{
+	if(!gB_LRActivated)
+	{
+		return;
+	}
+
+	int iWeapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
+
+	if(iWeapon != -1 && IsValidEntity(iWeapon))
+	{
+		SetEntDataFloat(iWeapon, gI_NextSecondaryAttack, GetGameTime() + 1.0);
+	}
 }
 
 //Thanks shavit

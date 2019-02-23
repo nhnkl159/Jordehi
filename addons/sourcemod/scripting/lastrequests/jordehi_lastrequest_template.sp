@@ -128,7 +128,7 @@ public Action OnWeaponCanUse(int client, int weapon)
 	}
 	
 	char[] sWeapon = new char[32];
-	GetClientWeapon(attacker, sWeapon, 32);
+	GetClientWeapon(client, sWeapon, 32);
 	
 	if(!StrEqual(sWeapon, ""))
 	{

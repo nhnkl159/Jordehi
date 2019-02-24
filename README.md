@@ -61,8 +61,8 @@ Complete rework of my current plugins, Jailbreak management and last requests ha
 - [x] Mag4Mag
 - [x] Knife fight
 - [x] Russian Roulette
-- [ ] NoScope Battle
-- [ ] DeagleToss
+- [x] NoScope Battle
+- [x] DeagleToss
 - [ ] FreeDay (Use JB Management API)
 - [ ] Hot Potato
 - [ ] Race

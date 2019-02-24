@@ -7,19 +7,23 @@
 
 #pragma newdecls required
 
-#define LR_NAME "Russian Roulette"
+#define LR_NAME "Hot Potato"
 #define PLUGIN_NAME "Jordehi - Last Request - " ... LR_NAME
 
 // === Integers === //
-int gI_PlayerTurn = -1;
+int gI_PotatoPlayer = 0;
 int gI_Ammo = -1;
+int gI_HotPotatoDeagle = -1;
 
 // === Strings === //
 
 // === Booleans === //
 bool gB_LRActivated = false;
+bool gB_HotPotatoMode = false; // false == teleport and freeze | true == teleport and run
 
 // === Floats === //
+float gI_HotPotatoMinTime = 10.0;
+float gI_HotPotatoMaxTime = 30.0;
 
 // === Handles === //
 
@@ -34,31 +38,11 @@ public Plugin myinfo =
 
 public void OnAllPluginsLoaded()
 {
-	HookEvent("weapon_fire", OnPlayerFire);
+	Jordehi_RegisterLR(LR_NAME, "");
 	
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 	
-	Jordehi_RegisterLR(LR_NAME, "");
-	
 	gB_LRActivated = false;
-}
-
-public void OnPlayerFire(Event e, const char[] name, bool dB)
-{
-	int client = GetClientOfUserId(e.GetInt("userid"));
-	
-	if(!Jordehi_IsClientValid(client))
-	{
-		return;
-	}
-	
-	if(gB_LRActivated && Jordehi_IsClientInLastRequest(client) && gI_PlayerTurn == client)
-	{
-		gI_PlayerTurn = Jordehi_GetClientOpponent(client);
-		int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
-		SetWeaponAmmo(gI_PlayerTurn, iWeapon, 1, 0);
-		
-	}
 }
 
 public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random)
@@ -68,10 +52,8 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		gB_LRActivated = true;
 		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
 		SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
-		
-		InitiateLR(terrorist);
 	}
 	
 	if(!Jordehi_IsClientValid(terrorist) && !Jordehi_IsClientValid(ct))
@@ -80,7 +62,10 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		return;
 	}
 	
-	Jordehi_UpdateExtraInfo("- Nothing here");
+	if(gB_LRActivated)
+	{
+		OpenSettingsMenu(terrorist);
+	}
 }
 
 public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
@@ -89,10 +74,62 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 	{
 		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
+		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
 		gB_LRActivated = false;
+		gB_HotPotatoMode = false;
+		gI_PotatoPlayer = 0;
+		gI_HotPotatoDeagle = -1;
+		SetEntityMoveType(winner, MOVETYPE_WALK);
+		SetEntityMoveType(loser, MOVETYPE_WALK);
+		SetEntPropFloat(winner, Prop_Data, "m_flLaggedMovementValue", 1.0);
+		SetEntPropFloat(loser, Prop_Data, "m_flLaggedMovementValue", 1.0);
 	}
+}
+
+void OpenSettingsMenu(int client)
+{
+	char sTemp[32];
+	FormatEx(sTemp, 32, "Change Mode : (Current: %s)", gB_HotPotatoMode ? "Teleport & Run" : "Teleport & Freeze");
+	Menu m = new Menu(Settings_Handler);
+	m.SetTitle("Settings Menu :");
+	m.AddItem("1", sTemp);
+	m.AddItem("0", "End Settings");
+	m.ExitButton = false;
+	m.Display(client, 30);
+}
+
+public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(item, sInfo, 8);
+		int iItem = StringToInt(sInfo);
+		switch(iItem)
+		{
+			case 0:
+			{
+				InitiateLR(client);
+			}
+			case 1:
+			{
+				gB_HotPotatoMode = !gB_HotPotatoMode;
+			}
+		}
+		if(iItem != 0)
+		{
+			OpenSettingsMenu(client);
+		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		Jordehi_StopLastRequest();
+		delete menu;
+	}
+
+	return 0;
 }
 
 void InitiateLR(int client)
@@ -101,6 +138,10 @@ void InitiateLR(int client)
 	{
 		return;
 	}
+	
+	char sTemp[32];
+	FormatEx(sTemp, 32, "- Current Mode : %s", gB_HotPotatoMode ? "Teleport & Run" : "Teleport & Freeze");
+	Jordehi_UpdateExtraInfo(sTemp);
 	
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
@@ -114,31 +155,16 @@ void InitiateLR(int client)
 		return;
 	}
 	
-	GivePlayerItem(terrorist, "weapon_deagle");
-	GivePlayerItem(ct, "weapon_deagle");
+	gI_PotatoPlayer = terrorist;
 	
-	int iRand = GetRandomInt(1, 2);
-	switch(iRand)
-	{
-		case 1:
-		{
-			gI_PlayerTurn = terrorist;
-		}
-		case 2:
-		{
-			gI_PlayerTurn = ct;
-		}
-	}
+	gI_HotPotatoDeagle = GivePlayerItem(gI_PotatoPlayer, "weapon_deagle");
+	SetWeaponAmmo(gI_PotatoPlayer, gI_HotPotatoDeagle, 0, 0);
 	
-	int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
-	
-	SetWeaponAmmo(gI_PlayerTurn, iWeapon, 7, 0);
-
 	float fClientOrigin[3];
-	GetClientAbsOrigin(terrorist, fClientOrigin);
+	GetClientAbsOrigin(gI_PotatoPlayer, fClientOrigin);
 
 	float fEyeAngles[3];
-	GetClientEyeAngles(terrorist, fEyeAngles);
+	GetClientEyeAngles(gI_PotatoPlayer, fEyeAngles);
 
 	float fAdd[3];
 	GetAngleVectors(fEyeAngles, fAdd, NULL_VECTOR, NULL_VECTOR);
@@ -159,40 +185,29 @@ void InitiateLR(int client)
 
 	TeleportEntity(ct, fClientOrigin, fEyeAngles, view_as<float>({0.0, 0.0, 0.0}));
 	
-}
-
-public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
-{
-	if(!Jordehi_IsClientValid(attacker))
+	float fRandom = GetRandomFloat(gI_HotPotatoMinTime, gI_HotPotatoMaxTime);
+	
+	if(gB_HotPotatoMode) // free run
 	{
-		return Plugin_Continue;
+		SetEntPropFloat(gI_PotatoPlayer, Prop_Data, "m_flLaggedMovementValue", 2.0);
+	}
+	else //teleport & freeze
+	{
+		SetEntityMoveType(gI_PotatoPlayer, MOVETYPE_NONE);
+		SetEntityMoveType(ct, MOVETYPE_NONE);
 	}
 	
-	if(gB_LRActivated)
+	CreateTimer(fRandom, Timer_EndHotPotato);
+}
+
+public Action Timer_EndHotPotato(Handle timer)
+{
+	if(!gB_LRActivated)
 	{
-		int iWeapon = GetPlayerWeaponSlot(attacker, CS_SLOT_SECONDARY);
-
-		int iRandom = GetRandomInt(1, 8);
-
-		switch(iRandom)
-		{
-			case 1:
-			{
-				SDKHooks_TakeDamage(victim, attacker, attacker, GetClientHealth(victim) * 1.0, CS_DMG_HEADSHOT, iWeapon);
-			}
-
-			case 2:
-			{
-				SDKHooks_TakeDamage(attacker, attacker, victim, GetClientHealth(attacker) * 1.0, CS_DMG_HEADSHOT, iWeapon);
-			}
-
-			default:
-			{
-				damage = 0.0;
-				return Plugin_Changed;
-			}
-		}
+		return Plugin_Stop;
 	}
+	
+	ForcePlayerSuicide(gI_PotatoPlayer);
 	
 	return Plugin_Continue;
 }
@@ -204,10 +219,16 @@ public Action OnWeaponCanUse(int client, int weapon)
 		return Plugin_Continue;
 	}
 	
-	char sWeapon[32];
-	GetEdictClassname(weapon, sWeapon, sizeof(sWeapon));
+	char[] sWeapon = new char[32];
+	GetClientWeapon(client, sWeapon, 32);
 	
-	if(!StrEqual(sWeapon, "weapon_deagle"))
+	//I'm pretty sure this should work
+	if(weapon == gI_HotPotatoDeagle)
+	{
+		gI_PotatoPlayer = client;
+	}
+	
+	if(!StrEqual(sWeapon, "weapon_deagle") && weapon != gI_HotPotatoDeagle)
 	{
 		return Plugin_Handled;
 	}
@@ -215,16 +236,23 @@ public Action OnWeaponCanUse(int client, int weapon)
 	return Plugin_Continue;
 }
 
-public Action CS_OnCSWeaponDrop(int client, int weapon)
+public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
 {
+	if(!Jordehi_IsClientValid(attacker))
+	{
+		return Plugin_Continue;
+	}
+	
 	if(gB_LRActivated)
 	{
-		return Plugin_Handled;
+		damage = 0.0;
+		return Plugin_Changed;
 	}
+	
 	return Plugin_Continue;
 }
 
-//Thanks shavit
+
 void SetWeaponAmmo(int client, int weapon, int first = -1, int second = -1)
 {
 	if(first != -1)

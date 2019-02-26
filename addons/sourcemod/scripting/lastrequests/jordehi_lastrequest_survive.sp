@@ -3,6 +3,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <jordehi_jailbreak>
 #include <jordehi_lastrequests>
 
 #pragma newdecls required
@@ -76,8 +77,8 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 
 void OpenSettingsMenu(int client)
 {
-	char sTemp[32];
-	FormatEx(sTemp, 32, "Change Mode : (Current: %s)", gB_SurviveMode ? "Easy" : "Hard");
+	char sTemp[128];
+	FormatEx(sTemp, 128, "Change Mode : (Current: %s)", gB_SurviveMode ? "Easy" : "Hard");
 	Menu m = new Menu(Settings_Handler);
 	m.SetTitle("Settings Menu :");
 	m.AddItem("1", sTemp);
@@ -112,7 +113,6 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 
 	else if(action == MenuAction_End)
 	{
-		Jordehi_StopLastRequest();
 		delete menu;
 	}
 
@@ -126,8 +126,8 @@ void InitiateLR(int client)
 		return;
 	}
 	
-	char sTemp[32];
-	FormatEx(sTemp, 32, "- Current Mode : (%s)", gB_SurviveMode ? "Easy" : "Hard");
+	char sTemp[128];
+	FormatEx(sTemp, 128, "- Current Mode : (%s)", gB_SurviveMode ? "Easy" : "Hard");
 	Jordehi_UpdateExtraInfo(sTemp);
 	
 	CreateTimer(gB_SurviveMode == true ? 1.5 : 0.5, Timer_Molly, client, TIMER_REPEAT);

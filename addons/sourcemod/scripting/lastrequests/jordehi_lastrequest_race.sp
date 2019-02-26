@@ -3,6 +3,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <jordehi_jailbreak>
 #include <jordehi_lastrequests>
 
 #pragma newdecls required
@@ -85,7 +86,7 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 
 void OpenSettingsMenu(int client)
 {
-	char sTemp[32];
+	char sTemp[128];
 	float fposX = fStartPoint[0];
 	float fposY = fStartPoint[1];
 	float fposZ = fStartPoint[2];
@@ -93,14 +94,14 @@ void OpenSettingsMenu(int client)
 	Menu m = new Menu(Settings_Handler);
 	m.SetTitle("Settings Menu :");
 	
-	FormatEx(sTemp, 32, "Set Starting Location (%f %f %f)", fposX, fposY, fposZ);
+	FormatEx(sTemp, 128, "Set Starting Location (%f %f %f)", fposX, fposY, fposZ);
 	m.AddItem("1", sTemp);
 	
 	fposX = fEndPoint[0];
 	fposY = fEndPoint[1];
 	fposZ = fEndPoint[2];
 	
-	FormatEx(sTemp, 32, "Set Ending Location (%f %f %f)", fposX, fposY, fposZ);
+	FormatEx(sTemp, 128, "Set Ending Location (%f %f %f)", fposX, fposY, fposZ);
 	m.AddItem("2", sTemp);
 	
 	m.AddItem("0", "End Settings");
@@ -119,6 +120,10 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 		{
 			case 0:
 			{
+				TeleportEntity(client, fStartPoint, NULL_VECTOR, view_as<float>( { 0.0, 0.0, 0.0 } ));
+				TeleportEntity(Jordehi_GetClientOpponent(client), fStartPoint, NULL_VECTOR, view_as<float>( { 0.0, 0.0, 0.0 } ));
+				
+				Jordehi_UpdateExtraInfo("- The race begins !");
 				InitiateLR(client);
 			}
 			case 1:
@@ -147,9 +152,6 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 					
 					TE_SetupBeamRingPoint(fEndPoint, 100.0, 130.0, gI_BeamSprite, gI_HaloSprite, 0, 15, 5.0, 7.0, 0.0, view_as<int>( { 0.0, 0.0, 255.0, 1.0 } ), 1, 0);
 					TE_SendToAll();
-					
-					Jordehi_UpdateExtraInfo("- The race begins !");
-					InitiateLR(client);
 				}
 				else
 				{
@@ -165,7 +167,6 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 
 	else if(action == MenuAction_End)
 	{
-		Jordehi_StopLastRequest();
 		delete menu;
 	}
 

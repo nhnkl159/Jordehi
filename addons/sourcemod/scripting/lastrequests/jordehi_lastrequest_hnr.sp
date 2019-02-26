@@ -3,6 +3,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <jordehi_jailbreak>
 #include <jordehi_lastrequests>
 
 #pragma newdecls required
@@ -109,17 +110,11 @@ void InitiateLR(int client)
 		return;
 	}
 	
-	int terrorist = client;
-	int ct = Jordehi_GetClientOpponent(terrorist);
-	
-	GivePlayerItem(terrorist, "weapon_ssg08");
-	GivePlayerItem(ct, "weapon_ssg08");
-	
 	fFloatTime = GetEngineTime();
-	CreateTimer(0.1, Timer_Countdown, terrorist, TIMER_REPEAT);
+	CreateTimer(0.1, Timer_Countdown, client, TIMER_REPEAT);
 	
-	char sTemp[32];
-	FormatEx(sTemp, 32, "- Selecting infected player...");
+	char sTemp[128];
+	FormatEx(sTemp, 128, "- Selecting infected player...");
 	Jordehi_UpdateExtraInfo(sTemp);
 }
 
@@ -133,13 +128,16 @@ public Action Timer_Countdown(Handle timer, any terrorist)
 	
 	if ((GetEngineTime() - fFloatTime) > 5.0)
 	{
+		GivePlayerItem(terrorist, "weapon_ssg08");
+		GivePlayerItem(Jordehi_GetClientOpponent(terrorist), "weapon_ssg08");
+	
 		int iRand = GetRandomInt(1, 2);
 		iInfectedPlayer = iRand == 1 ? terrorist : Jordehi_GetClientOpponent(terrorist);
 		SetEntityRenderMode(iInfectedPlayer, RENDER_TRANSALPHA);
 		SetEntityRenderColor(iInfectedPlayer, GetRandomInt(1, 255), GetRandomInt(1, 255), GetRandomInt(1, 255));
 		
-		char sTemp[32];
-		FormatEx(sTemp, 32, "- Infected Player : %N", iInfectedPlayer);
+		char sTemp[128];
+		FormatEx(sTemp, 128, "- Infected Player : %N", iInfectedPlayer);
 		Jordehi_UpdateExtraInfo(sTemp);
 		
 		fFloatTime = GetEngineTime();
@@ -192,16 +190,20 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	
 	if(gB_LRActivated)
 	{
-		SetEntityRenderMode(attacker, RENDER_NORMAL);
-		SetEntityRenderColor(attacker);
-		
-		iInfectedPlayer = victim;
-		
-		SetEntityRenderMode(victim, RENDER_TRANSALPHA);
-		SetEntityRenderColor(victim, GetRandomInt(1, 255), GetRandomInt(1, 255), GetRandomInt(1, 255));
-		
-		Jordehi_PrintToChatAll("\x07!!!  H I T  !!!");
-		Jordehi_PrintToChatAll("Player \x05%N\x01 hit \x0B%N\x1 and he is now the \x07Infected !", attacker, victim);
+		if(attacker == iInfectedPlayer)
+		{
+			SetEntityRenderMode(attacker, RENDER_NORMAL);
+			SetEntityRenderColor(attacker);
+			
+			iInfectedPlayer = victim;
+			
+			SetEntityRenderMode(victim, RENDER_TRANSALPHA);
+			SetEntityRenderColor(victim, GetRandomInt(1, 255), GetRandomInt(1, 255), GetRandomInt(1, 255));
+			
+			Jordehi_PrintToChatAll("\x07!!!  H I T  !!!");
+			Jordehi_PrintToChatAll("Player \x05%N\x01 hit \x0B%N\x1 and he is now the \x07Infected !", attacker, victim);
+		}
+
 		damage = 0.0;
 		return Plugin_Changed;
 	}
@@ -233,7 +235,7 @@ public Action OnWeaponCanUse(int client, int weapon)
 	}
 	
 	char[] sWeapon = new char[32];
-	GetClientWeapon(client, sWeapon, 32);
+	GetEntityClassname(weapon, sWeapon, 32);
 	
 	if(!StrEqual(sWeapon, "weapon_ssg08"))
 	{

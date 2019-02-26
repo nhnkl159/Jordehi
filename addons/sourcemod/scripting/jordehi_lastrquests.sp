@@ -3,6 +3,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <jordehi_jailbreak>
 #include <jordehi_lastrequests>
 #include <geoip>
 
@@ -49,8 +50,7 @@ public Plugin myinfo =
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	RegPluginLibrary("jordehi_lastrquests");
-	
-	CreateNative("Jordehi_PrintToChat", Native_PrintToChat);
+
 	CreateNative("Jordehi_RegisterLR", Native_RegisterLR);
 	CreateNative("Jordehi_UpdateExtraInfo", Native_UpdateExtraInfo);
 	CreateNative("Jordehi_IsClientInLastRequest", Native_IsClientInLastRequest);
@@ -120,20 +120,20 @@ public void OnMapStart()
 	gI_BeamSprite = PrecacheModel("sprites/laserbeam.vmt", true);
 	gI_HaloSprite = PrecacheModel("sprites/glow01.vmt", true);
 	
-	AddFileToDownloadsTable("sound/jordehi/jordehi_beacon.mp3");
-	PrecacheSound("jordehi/jordehi_beacon.mp3", true);
+	AddFileToDownloadsTable("sound/jordehi/lastrequest/jordehi_beacon.mp3");
+	PrecacheSound("jordehi/lastrequest/jordehi_beacon.mp3", true);
 	
-	AddFileToDownloadsTable("sound/jordehi/jordehi_lr_start.mp3");
-	PrecacheSound("jordehi/jordehi_lr_start.mp3", true);
+	AddFileToDownloadsTable("sound/jordehi/lastrequest/jordehi_lr_start.mp3");
+	PrecacheSound("jordehi/lastrequest/jordehi_lr_start.mp3", true);
 	
-	AddFileToDownloadsTable("sound/jordehi/jordehi_lr_end.mp3");
-	PrecacheSound("jordehi/jordehi_lr_end.mp3", true);
+	AddFileToDownloadsTable("sound/jordehi/lastrequest/jordehi_lr_end.mp3");
+	PrecacheSound("jordehi/lastrequest/jordehi_lr_end.mp3", true);
 	
-	AddFileToDownloadsTable("sound/jordehi/jordehi_lr_end2.mp3");
-	PrecacheSound("jordehi/jordehi_lr_end2.mp3", true);
+	AddFileToDownloadsTable("sound/jordehi/lastrequest/jordehi_lr_end2.mp3");
+	PrecacheSound("jordehi/lastrequest/jordehi_lr_end2.mp3", true);
 	
-	AddFileToDownloadsTable("sound/jordehi/jordehi_lr_activated.mp3");
-	PrecacheSound("jordehi/jordehi_lr_activated.mp3", true);
+	AddFileToDownloadsTable("sound/jordehi/lastrequest/jordehi_lr_activated.mp3");
+	PrecacheSound("jordehi/lastrequest/jordehi_lr_activated.mp3", true);
 	
 	CreateTimer(0.50, LRBeacon_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
@@ -149,7 +149,7 @@ public void OnClientPostAdminCheck(int client)
 		
 		if (!GeoipCountry(sIP, sCountry, sizeof sCountry))FormatEx(sCountry, sizeof(sCountry), "Unknown Country");
 		
-		Jordehi_PrintToChat(client, "\x04+\x01 \x07%N\01 [\x07%s\x01] connected from \x07%s\x01.", client, sAuthid, sCountry);
+		Jordehi_PrintToChatAll("\x04+\x01 \x07%N\01 [\x07%s\x01] connected from \x07%s\x01.", client, sAuthid, sCountry);
 	}
 }
 
@@ -172,13 +172,14 @@ public void OnClientDisconnect(int client)
 	{
 		if(Jordehi_IsClientInLastRequest(client) && gB_LRStarted)
 		{
+			Jordehi_PrintToChatAll("TEST1");
 			Jordehi_StopLastRequest();
 		}
 		
 		char sAuthid[64];
 		GetClientAuthId(client, AuthId_Steam2, sAuthid, sizeof(sAuthid));
 		
-		Jordehi_PrintToChat(client, "\x02-\x01 \x07%N\01 [\x07%s\x01] disconnected.", client, sAuthid);
+		Jordehi_PrintToChatAll("\x02-\x01 \x07%N\01 [\x07%s\x01] disconnected.", client, sAuthid);
 	}
 }
 
@@ -211,6 +212,7 @@ public void OnRoundStart(Event e, const char[] name, bool dB)
 
 public Action StopLastrequest_Timer(Handle Timer)
 {
+	Jordehi_PrintToChatAll("TEST2");
 	Jordehi_StopLastRequest();
 }
 
@@ -237,6 +239,7 @@ public void OnPlayerDeath(Event e, const char[] name, bool dB)
 	
 	if(gB_LRStarted && Jordehi_IsClientInLastRequest(victim))
 	{
+		Jordehi_PrintToChatAll("TEST3");
 		gI_LRWinner = Jordehi_GetClientOpponent(victim); //Player might suicide or force to be.
 		Jordehi_StopLastRequest();
 		Command_LastRequest(gI_LRWinner, 0);
@@ -258,7 +261,7 @@ public void OnPlayerDeath(Event e, const char[] name, bool dB)
 			}
 		}
 		
-		EmitSoundToAll("jordehi/jordehi_lr_activated.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
+		EmitSoundToAll("jordehi/lastrequest/jordehi_lr_activated.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
 	}
 }
 
@@ -430,7 +433,7 @@ void InitiateLastRequest(int client, int target, bool bRandom)
 		return;
 	}
 	
-	EmitSoundToAll("jordehi/jordehi_lr_start.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
+	EmitSoundToAll("jordehi/lastrequest/jordehi_lr_start.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
 	
 	gB_LRStarted = true;
 	
@@ -506,7 +509,7 @@ public Action LRBeacon_Timer(Handle Timer)
 		return Plugin_Continue;
 	}
 
-	EmitSoundToAll("jordehi/jordehi_beacon.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, 20);
+	EmitSoundToAll("jordehi/lastrequest/jordehi_beacon.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, 20);
 	
 	//Stolen from javit 3>
 	float origin[3];
@@ -589,11 +592,6 @@ bool IsAbleToStartLR(int client)
 		return false;
 	}
 	
-	if (!gB_LRAvailable)
-	{
-		Jordehi_PrintToChat(client, "Lastrequest in not available at the moment.");
-		return false;
-	}
 	
 	if(gB_Rebel)
 	{
@@ -671,40 +669,6 @@ stock int GetLRCT()
 	return iCTerrorist;
 }
 
-public int Native_PrintToChat(Handle handler, int numParams)
-{
-	int client = GetNativeCell(1);
-	
-	if (!IsClientInGame(client))
-	{
-		return;
-	}
-	
-	static int iWritten = 0; // useless?
-	
-	char sBuffer[300];
-	FormatNativeString(0, 2, 3, 300, iWritten, sBuffer);
-	Format(sBuffer, 300, Jordehi_PREFIX..." %s", sBuffer);
-	
-	if (GetEngineVersion() != Engine_CSGO)
-	{
-		Handle hSayText2 = StartMessageOne("SayText2", client);
-		
-		if (hSayText2 != null)
-		{
-			BfWriteByte(hSayText2, 0);
-			BfWriteByte(hSayText2, true);
-			BfWriteString(hSayText2, sBuffer);
-		}
-		
-		EndMessage();
-	}
-	
-	else
-	{
-		PrintToChat(client, " %s", sBuffer);
-	}
-}
 
 public int Native_RegisterLR(Handle plugin, int numParams)
 {
@@ -740,21 +704,21 @@ public int Native_UpdateExtraInfo(Handle plugin, int numParams)
 	
 	FormatEx(current_lastrequest.lr_extrainfo, sizeof(current_lastrequest.lr_extrainfo), sExtraInfo);
 	
-	char sTemp[128];
+	char sTemp[328];
 	
 	int iTerrorist = GetLRTerrorist();
 
 	Panel panel = new Panel();
 	panel.SetTitle("[Jordehi] Current Last Request :", false);
 	panel.DrawText("================");
-	FormatEx(sTemp, 128, " - Game : %s", current_lastrequest.lr_name);
+	FormatEx(sTemp, 328, " - Game : %s", current_lastrequest.lr_name);
 	panel.DrawText(sTemp);
-	FormatEx(sTemp, 128, " - Player : %N", iTerrorist);
+	FormatEx(sTemp, 328, " - Player : %N", iTerrorist);
 	panel.DrawText(sTemp);
-	FormatEx(sTemp, 128, " - Opponent : %N", Jordehi_GetClientOpponent(iTerrorist));
+	FormatEx(sTemp, 328, " - Opponent : %N", Jordehi_GetClientOpponent(iTerrorist));
 	panel.DrawText(sTemp);
 	panel.DrawText("================");
-	FormatEx(sTemp, 128, "%s", current_lastrequest.lr_extrainfo);
+	FormatEx(sTemp, 328, "%s", current_lastrequest.lr_extrainfo);
 	panel.DrawText(sTemp);
 	panel.CurrentKey = 9;
 	
@@ -781,6 +745,7 @@ public int Native_GetClientOpponent(Handle plugin, int numParams)
 
 public int Native_StopLastRequest(Handle plugin, int numParams)
 {
+	Jordehi_PrintToChatAll("TESTTTT");
 	if (Jordehi_IsClientValid(gI_LRWinner) && Jordehi_IsClientValid(Jordehi_GetClientOpponent(gI_LRWinner)))
 	{
 		Call_StartForward(gH_Forwards_OnLREnd);
@@ -809,15 +774,15 @@ public int Native_StopLastRequest(Handle plugin, int numParams)
 			
 			if(GetClientTeam(gI_LRWinner) == 2)
 			{
-				EmitSoundToAll("jordehi/jordehi_lr_end.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
+				EmitSoundToAll("jordehi/lastrequest/jordehi_lr_end.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
 			}
 			else
 			{
-				EmitSoundToAll("jordehi/jordehi_lr_end2.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
+				EmitSoundToAll("jordehi/lastrequest/jordehi_lr_end2.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
 			}
 			
-			char sTemp[32];
-			FormatEx(sTemp, 32, "- Lastrequest Winner : %N", gI_LRWinner);
+			char sTemp[128];
+			FormatEx(sTemp, 128, "- Lastrequest Winner : %N", gI_LRWinner);
 			Jordehi_UpdateExtraInfo(sTemp);
 			
 			GivePlayerItem(gI_LRWinner, "weapon_knife");

@@ -3,6 +3,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <jordehi_jailbreak>
 #include <jordehi_lastrequests>
 
 #pragma newdecls required
@@ -72,24 +73,24 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 
 void OpenSettingsMenu(int client)
 {
-	char sTemp[32];
+	char sTemp[128];
 	switch(gI_Choice)
 	{
 		case 1:
 		{
-			FormatEx(sTemp, 32, "Current Mode : Normal Knife Fight");
+			FormatEx(sTemp, 128, "Current Mode : Normal Knife Fight");
 		}
 		case 2:
 		{
-			FormatEx(sTemp, 32, "Current Mode : Backstabs only");
+			FormatEx(sTemp, 128, "Current Mode : Backstabs only");
 		}
 		case 3:
 		{
-			FormatEx(sTemp, 32, "Current Mode : The Flash");
+			FormatEx(sTemp, 128, "Current Mode : The Flash");
 		}
 		case 4:
 		{
-			FormatEx(sTemp, 32, "Current Mode : Party Mode");
+			FormatEx(sTemp, 128, "Current Mode : Party Mode");
 		}
 	}
 	
@@ -127,15 +128,10 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 				m.Display(client, 60);
 			}
 		}
-		if(iItem != 0)
-		{
-			OpenSettingsMenu(client);
-		}
 	}
 
 	else if(action == MenuAction_End)
 	{
-		Jordehi_StopLastRequest();
 		delete menu;
 	}
 
@@ -150,10 +146,10 @@ public int KnifeModes_Handler(Menu menu, MenuAction action, int client, int item
 		menu.GetItem(item, info, sizeof(info));
 		
 		gI_Choice = StringToInt(info);
+		OpenSettingsMenu(client);
 	}
 	else if (action == MenuAction_End)
 	{
-		Jordehi_StopLastRequest();
 		delete menu;
 	}
 }
@@ -234,7 +230,7 @@ public Action OnWeaponCanUse(int client, int weapon)
 	}
 	
 	char[] sWeapon = new char[32];
-	GetClientWeapon(attacker, sWeapon, 32);
+	GetEntityClassname(weapon, sWeapon, 32);
 	
 	if(!StrEqual(sWeapon, "weapon_knife"))
 	{

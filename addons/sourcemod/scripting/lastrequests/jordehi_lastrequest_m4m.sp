@@ -3,6 +3,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <jordehi_jailbreak>
 #include <jordehi_lastrequests>
 
 #pragma newdecls required
@@ -154,7 +155,6 @@ public int MenuHandler_Weapons(Menu menu, MenuAction action, int client, int ite
 
 	else if(action == MenuAction_End)
 	{
-		Jordehi_StopLastRequest();
 		delete menu;
 	}
 
@@ -176,8 +176,8 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 
 void OpenSettingsMenu(int client)
 {
-	char sTemp[32];
-	FormatEx(sTemp, 32, "Headshots only : %s", gB_HeadshotsOnly ? "Yes" : "No");
+	char sTemp[128];
+	FormatEx(sTemp, 128, "Headshots only : %s", gB_HeadshotsOnly ? "Yes" : "No");
 	Menu m = new Menu(Settings_Handler);
 	m.SetTitle("Settings Menu :");
 	m.AddItem("1", sTemp);
@@ -212,7 +212,6 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 
 	else if(action == MenuAction_End)
 	{
-		Jordehi_StopLastRequest();
 		delete menu;
 	}
 
@@ -226,8 +225,8 @@ void InitiateLR(int client, int choice)
 		return;
 	}
 	
-	char sTemp[32];
-	FormatEx(sTemp, 32, "- Weapon : %s \n- Headshots only enabled : %s", gS_CSGOPistols[choice], gB_HeadshotsOnly ? "Yes" : "No");
+	char sTemp[128];
+	FormatEx(sTemp, 128, "- Weapon : %s \n- Headshots only enabled : %s", gS_CSGOPistols[choice], gB_HeadshotsOnly ? "Yes" : "No");
 	Jordehi_UpdateExtraInfo(sTemp);
 	
 	int terrorist = client;
@@ -255,7 +254,7 @@ public Action OnWeaponCanUse(int client, int weapon)
 	}
 	
 	char[] sWeapon = new char[32];
-	GetClientWeapon(client, sWeapon, 32);
+	GetEntityClassname(weapon, sWeapon, 32);
 	
 	if(!StrEqual(sWeapon, gS_CSGOPistols[gI_Weapon]))
 	{

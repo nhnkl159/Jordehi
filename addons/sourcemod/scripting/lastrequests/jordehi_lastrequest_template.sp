@@ -3,6 +3,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <jordehi_jailbreak>
 #include <jordehi_lastrequests>
 
 #pragma newdecls required
@@ -97,7 +98,6 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 
 	else if(action == MenuAction_End)
 	{
-		Jordehi_StopLastRequest();
 		delete menu;
 	}
 
@@ -111,8 +111,8 @@ void InitiateLR(int client)
 		return;
 	}
 	
-	/*char sTemp[32];
-	FormatEx(sTemp, 32, "- Something enabled : %s", gB_Something ? "Yes" : "No");
+	/*char sTemp[128];
+	FormatEx(sTemp, 128, "- Something enabled : %s", gB_Something ? "Yes" : "No");
 	Jordehi_UpdateExtraInfo(sTemp);*/
 	
 	int terrorist = client;
@@ -128,7 +128,7 @@ public Action OnWeaponCanUse(int client, int weapon)
 	}
 	
 	char[] sWeapon = new char[32];
-	GetClientWeapon(client, sWeapon, 32);
+	GetEntityClassname(weapon, sWeapon, 32);
 	
 	if(!StrEqual(sWeapon, ""))
 	{

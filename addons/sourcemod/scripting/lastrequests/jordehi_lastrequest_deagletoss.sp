@@ -6,6 +6,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <jordehi_jailbreak>
 #include <jordehi_lastrequests>
 
 #pragma newdecls required
@@ -23,7 +24,7 @@ int gI_HaloSprite = -1;
 
 int gI_Ammo = -1;
 int gI_DeagleTossFirst = 0;
-int gI_Deagles[2];
+int gI_Deagles[3];
 
 // === Strings === //
 
@@ -86,9 +87,10 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		return;
 	}
 	
-	OpenSettingsMenu(terrorist);
-	
-	Jordehi_UpdateExtraInfo("");
+	if(gB_LRActivated)
+	{
+		OpenSettingsMenu(terrorist);
+	}
 }
 
 public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
@@ -116,14 +118,14 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 
 void OpenSettingsMenu(int client)
 {
-	char sTemp[32];
-	FormatEx(sTemp, 32, "DeagleToss Mode : %s", gB_DeagleTossMode ? "Closest toss (lowest distance)" : "Furthest toss (highest distance)");
+	char sTemp[128];
+	FormatEx(sTemp, 128, "DeagleToss Mode : %s", gB_DeagleTossMode ? "Closest toss (lowest distance)" : "Furthest toss (highest distance)");
 	Menu m = new Menu(Settings_Handler);
 	m.SetTitle("Settings Menu :");
 	m.AddItem("1", sTemp);
-	FormatEx(sTemp, 32, "Allow Parachute : %s", gB_Parachute ? "Yes" : "No");
+	FormatEx(sTemp, 128, "Allow Parachute : %s", gB_Parachute ? "Yes" : "No");
 	m.AddItem("2", sTemp);
-	FormatEx(sTemp, 32, "Allow Bhop : %s", gB_Bhop ? "Yes" : "No");
+	FormatEx(sTemp, 128, "Allow Bhop : %s", gB_Bhop ? "Yes" : "No");
 	m.AddItem("3", sTemp);
 	m.AddItem("0", "End Settings");
 	m.ExitButton = false;
@@ -164,7 +166,6 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 
 	else if(action == MenuAction_End)
 	{
-		Jordehi_StopLastRequest();
 		delete menu;
 	}
 
@@ -178,13 +179,14 @@ void InitiateLR(int client)
 		return;
 	}
 	
-	char sTemp[32];
-	FormatEx(sTemp, 32, "- DeagleToss Mode : %s \n- Allow Parachute : %s \n- Allow Bhop : %s", gB_DeagleTossMode ? "Closest toss (lowest distance)" : "Furthest toss (highest distance)", gB_Parachute ? "Yes" : "No", gB_Bhop ? "Yes" : "No");
+	char sTemp[128];
+	FormatEx(sTemp, 128, "- DeagleToss Mode : %s \n- Allow Parachute : %s \n- Allow Bhop : %s", gB_DeagleTossMode ? "Closest toss (lowest distance)" : "Furthest toss (highest distance)", gB_Parachute ? "Yes" : "No", gB_Bhop ? "Yes" : "No");
 	Jordehi_UpdateExtraInfo(sTemp);
 	
 	gI_Terrorist = client;
 	gI_CT = Jordehi_GetClientOpponent(gI_Terrorist);
 	
+
 	//Terrorist
 	gI_Deagles[gI_Terrorist] = GivePlayerItem(gI_Terrorist, "weapon_deagle");
 	SetWeaponAmmo(gI_Terrorist, gI_Deagles[gI_Terrorist], 0, 0);
@@ -389,7 +391,7 @@ public Action OnWeaponCanUse(int client, int weapon)
 		return Plugin_Continue;
 	}
 	
-	if(!gB_AllowEquip && gB_DroppedDeagle[client] && weapon == gI_Deagles[client])
+	if(!gB_AllowEquip && gB_DroppedDeagle[client])
 	{
 		return Plugin_Handled;
 	}
@@ -399,7 +401,7 @@ public Action OnWeaponCanUse(int client, int weapon)
 
 public Action CS_OnCSWeaponDrop(int client, int weapon)
 {
-	if(gB_LRActivated && weapon == gI_Deagles[client])
+	if(gB_LRActivated)
 	{
 		if(gB_DroppedDeagle[client])
 		{

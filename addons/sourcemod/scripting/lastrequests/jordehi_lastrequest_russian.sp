@@ -3,6 +3,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <jordehi_jailbreak>
 #include <jordehi_lastrequests>
 
 #pragma newdecls required
@@ -70,7 +71,7 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
 		SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
-		
+		Jordehi_UpdateExtraInfo("- Nothing here");
 		InitiateLR(terrorist);
 	}
 	
@@ -79,8 +80,6 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		Jordehi_StopLastRequest();
 		return;
 	}
-	
-	Jordehi_UpdateExtraInfo("- Nothing here");
 }
 
 public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
@@ -92,6 +91,8 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
 		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
 		gB_LRActivated = false;
+		SetEntityMoveType(winner, MOVETYPE_WALK);
+		SetEntityMoveType(loser, MOVETYPE_WALK);
 	}
 }
 
@@ -117,12 +118,15 @@ void InitiateLR(int client)
 	GivePlayerItem(terrorist, "weapon_deagle");
 	GivePlayerItem(ct, "weapon_deagle");
 	
+	SetEntityMoveType(terrorist, MOVETYPE_NONE);
+	SetEntityMoveType(ct, MOVETYPE_NONE);
+	
 	int iRand = GetRandomInt(1, 2);
 	gI_PlayerTurn = iRand == 1 ? terrorist : ct;
 	
 	int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
 	
-	SetWeaponAmmo(gI_PlayerTurn, iWeapon, 7, 0);
+	SetWeaponAmmo(gI_PlayerTurn, iWeapon, 1, 0);
 
 	float fClientOrigin[3];
 	GetClientAbsOrigin(terrorist, fClientOrigin);
@@ -195,7 +199,7 @@ public Action OnWeaponCanUse(int client, int weapon)
 	}
 	
 	char sWeapon[32];
-	GetEdictClassname(weapon, sWeapon, sizeof(sWeapon));
+	GetEntityClassname(weapon, sWeapon, 32);
 	
 	if(!StrEqual(sWeapon, "weapon_deagle"))
 	{

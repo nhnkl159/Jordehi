@@ -7,7 +7,7 @@
 
 #pragma newdecls required
 
-#define LR_NAME "Dodgeball"
+#define LR_NAME "Survive the rain"
 #define PLUGIN_NAME "Jordehi - Last Request - " ... LR_NAME
 
 // === Integers === //
@@ -16,7 +16,7 @@
 
 // === Booleans === //
 bool gB_LRActivated = false;
-bool gB_Gravity = false;
+bool gB_SurviveMode = false; // false == Hard | true == Easy
 
 // === Floats === //
 
@@ -45,9 +45,11 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		gB_LRActivated = true;
 		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
+		SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
 	}
 	
-	if(!Jordehi_IsClientValid(terrorist) || !Jordehi_IsClientValid(ct))
+	if(!Jordehi_IsClientValid(terrorist) && !Jordehi_IsClientValid(ct))
 	{
 		Jordehi_StopLastRequest();
 		return;
@@ -59,7 +61,6 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	}
 }
 
-
 public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 {
 	if(gB_LRActivated)
@@ -69,24 +70,14 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
 		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
 		gB_LRActivated = false;
-		gB_Gravity = false;
-	}
-	if(Jordehi_IsClientValid(winner))
-	{
-		SetEntProp(winner, Prop_Data, "m_CollisionGroup", 2);
-		SetEntityGravity(winner, 1.0);
-	}
-	if(Jordehi_IsClientValid(loser))
-	{
-		SetEntProp(loser, Prop_Data, "m_CollisionGroup", 2);
-		SetEntityGravity(loser, 1.0);
+		gB_SurviveMode = false;
 	}
 }
 
 void OpenSettingsMenu(int client)
 {
 	char sTemp[32];
-	FormatEx(sTemp, 32, "Enable Gravity : %s", gB_Gravity ? "Yes" : "No");
+	FormatEx(sTemp, 32, "Change Mode : (Current: %s)", gB_SurviveMode ? "Easy" : "Hard");
 	Menu m = new Menu(Settings_Handler);
 	m.SetTitle("Settings Menu :");
 	m.AddItem("1", sTemp);
@@ -110,7 +101,7 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 			}
 			case 1:
 			{
-				gB_Gravity = !gB_Gravity;
+				gB_SurviveMode = !gB_SurviveMode;
 			}
 		}
 		if(iItem != 0)
@@ -128,7 +119,6 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 	return 0;
 }
 
-
 void InitiateLR(int client)
 {
 	if(!gB_LRActivated)
@@ -137,90 +127,61 @@ void InitiateLR(int client)
 	}
 	
 	char sTemp[32];
-	FormatEx(sTemp, 32, "- Gravity enabled : %s", gB_Gravity ? "Yes" : "No");
+	FormatEx(sTemp, 32, "- Current Mode : (%s)", gB_SurviveMode ? "Easy" : "Hard");
 	Jordehi_UpdateExtraInfo(sTemp);
 	
-	int terrorist = client;
-	int ct = Jordehi_GetClientOpponent(terrorist);
-	
-	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
-	
-	
-	SetEntityHealth(terrorist, 1);
-	SetEntityHealth(ct, 1);
-
-	GivePlayerItem(terrorist, "weapon_flashbang");
-	GivePlayerItem(ct, "weapon_flashbang");
-	
-	if(gB_Gravity)
-	{
-		SetEntityGravity(terrorist, 1.5);
-		SetEntityGravity(ct, 1.5);
-	}
-
-	SetEntProp(terrorist, Prop_Data, "m_CollisionGroup", 5);
-	SetEntProp(ct, Prop_Data, "m_CollisionGroup", 5);
-	
-	CreateTimer(0.5, Cheating_Timer, terrorist, TIMER_REPEAT);
-	CreateTimer(0.5, Cheating_Timer, ct, TIMER_REPEAT);
+	CreateTimer(gB_SurviveMode == true ? 1.5 : 0.5, Timer_Molly, client, TIMER_REPEAT);
 }
 
-public void OnEntityCreated(int entity, const char[] classname)
-{
-	if(gB_LRActivated && StrEqual(classname, "flashbang_projectile"))
-	{
-		CreateTimer(1.5, Timer_KillFlashbang, entity, TIMER_FLAG_NO_MAPCHANGE);
-	}
-}
-
-public Action Timer_KillFlashbang(Handle Timer, any entity)
-{
-	if(IsValidEntity(entity) && entity != INVALID_ENT_REFERENCE)
-	{
-		int client = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-		
-		AcceptEntityInput(entity, "Kill");
-		
-		Jordehi_StripAllWeapons(client);
-		
-		CreateTimer(0.25, Timer_AutoSwitch, client);
-	}
-
-}
-
-public Action Timer_AutoSwitch(Handle Timer, any client)
-{
-	if(!Jordehi_IsClientValid(client) || !IsPlayerAlive(client))
-	{
-		return Plugin_Stop;
-	}
-	
-	GivePlayerItem(client, "weapon_flashbang");
-	FakeClientCommand(client, "use weapon_flashbang");
-
-	return Plugin_Stop;
-}
-
-public Action Cheating_Timer(Handle Timer, any client)
+public Action Timer_Molly(Handle timer, any terrorist)
 {
 	if (!gB_LRActivated)
 	{
 		return Plugin_Stop;
 	}
 	
-	if (!IsPlayerAlive(client))
-	{
-		return Plugin_Stop;
-	}
+	float fPos[3];
 	
-	if(GetClientHealth(client) > 1)
-	{
-		SetEntityHealth(client, 1);
-	}
+	int iMolly = CreateEntityByName("molotov_projectile");
+	if (iMolly == -1)
+		return Plugin_Continue;
+
+	float fRadX = GetRandomFloat(0.0, 200.0), fRadY = GetRandomFloat(0.0, 200.0);
+	if (GetRandomInt(0, 1) > 0)
+		fRadX = -fRadX;
+	if (GetRandomInt(0, 1) > 0)
+		fRadY = -fRadY;
+	
+	int iRand = GetRandomInt(1, 2);
+	GetEntPropVector(iRand == 1 ? terrorist : Jordehi_GetClientOpponent(terrorist), Prop_Data, "m_vecOrigin", fPos);
+	
+	fPos[0] += fRadX;
+	fPos[1] += fRadY;
+	fPos[2] += 100.0;
+	
+	DispatchSpawn(iMolly);
+	TeleportEntity(iMolly, fPos, NULL_VECTOR, NULL_VECTOR);
+	SetEntityGravity(iMolly, 100.0 / 100.0);
+	SDKHook(iMolly, SDKHook_Touch, StartTouch);
+	SDKHook(iMolly, SDKHook_OnTakeDamage, TakeTouch);
 	return Plugin_Continue;
 }
 
+public Action StartTouch(int molly, int other)
+{
+	SetEntProp(molly, Prop_Data, "m_takedamage", 2);
+	SetEntProp(molly, Prop_Data, "m_iHealth", 1);
+	SDKHooks_TakeDamage(molly, molly, 1, 1.0, DMG_BURN, -1, NULL_VECTOR, NULL_VECTOR);
+}
+
+public Action TakeTouch(int client, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	if(Jordehi_IsClientValid(attacker))
+	{
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
+}
 
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
 {
@@ -231,18 +192,18 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	
 	if(gB_LRActivated)
 	{
-		char[] sWeapon = new char[32];
-		GetClientWeapon(attacker, sWeapon, 32);
-	
-		if(!StrEqual(sWeapon, "weapon_flashbang"))
+		if(damagetype == DMG_BURN)
 		{
-			damage = 0.0;
-			return Plugin_Changed;
+			float fRand = GetRandomFloat(1.0, 3.0);
+			IgniteEntity(victim, fRand);
 		}
+		damage = 0.0;
+		return Plugin_Changed;
 	}
 	
 	return Plugin_Continue;
 }
+
 
 public Action OnWeaponCanUse(int client, int weapon)
 {
@@ -250,14 +211,14 @@ public Action OnWeaponCanUse(int client, int weapon)
 	{
 		return Plugin_Continue;
 	}
-	
-	char[] sWeapon = new char[32];
-	GetClientWeapon(attacker, sWeapon, 32);
-	
-	if(!StrEqual(sWeapon, "weapon_flashbang"))
+	return Plugin_Handled;
+}
+
+public Action CS_OnCSWeaponDrop(int client, int weapon)
+{
+	if(gB_LRActivated)
 	{
 		return Plugin_Handled;
 	}
-	
 	return Plugin_Continue;
 }

@@ -68,7 +68,7 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		gB_LRActivated = true;
 		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
 		SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
 		
 		InitiateLR(terrorist);
@@ -89,7 +89,7 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 	{
 		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
 		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
 		gB_LRActivated = false;
 	}
@@ -118,17 +118,7 @@ void InitiateLR(int client)
 	GivePlayerItem(ct, "weapon_deagle");
 	
 	int iRand = GetRandomInt(1, 2);
-	switch(iRand)
-	{
-		case 1:
-		{
-			gI_PlayerTurn = terrorist;
-		}
-		case 2:
-		{
-			gI_PlayerTurn = ct;
-		}
-	}
+	gI_PlayerTurn = iRand == 1 ? terrorist : ct;
 	
 	int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
 	

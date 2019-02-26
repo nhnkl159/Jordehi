@@ -51,12 +51,12 @@ public Plugin myinfo =
 
 public void OnAllPluginsLoaded()
 {
+	Jordehi_RegisterLR(LR_NAME, "");
+	
 	HookEvent("weapon_fire", OnPlayerFire);
 	
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 	gI_NextSecondaryAttack = FindSendPropInfo("CBaseCombatWeapon", "m_flNextSecondaryAttack");
-	
-	Jordehi_RegisterLR(LR_NAME, "");
 	
 	gB_LRActivated = false;
 }

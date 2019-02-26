@@ -235,17 +235,7 @@ void InitiateLR(int client, int choice)
 	GivePlayerItem(ct, gS_CSGOPistols[choice]);
 	
 	int iRand = GetRandomInt(1, 2);
-	switch(iRand)
-	{
-		case 1:
-		{
-			gI_PlayerTurn = terrorist;
-		}
-		case 2:
-		{
-			gI_PlayerTurn = ct;
-		}
-	}
+	gI_PlayerTurn = iRand == 1 ? terrorist : ct;
 	
 	int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
 	

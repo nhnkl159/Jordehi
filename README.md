@@ -65,9 +65,9 @@ Complete rework of my current plugins, Jailbreak management and last requests ha
 - [x] DeagleToss
 - [ ] FreeDay (Use JB Management API)
 - [x] Hot Potato
-- [ ] Race
-- [ ] Hit and Run
-- [ ] Survive The Rain
+- [x] Race
+- [x] Hit and Run
+- [x] Survive The Rain
 
 ### Developer API
 #### **Forwards**

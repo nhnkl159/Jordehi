@@ -249,6 +249,15 @@ public void OnPlayerDeath(Event e, const char[] name, bool dB)
 		Call_StartForward(gH_Forwards_OnLRAvailable);
 		Call_Finish();
 		
+		Jordehi_LoopClients(i)
+		{
+			if(IsPlayerAlive(i) && GetClientTeam(i) == 2)
+			{
+				Command_LastRequest(i, 0);
+				Jordehi_PrintToChatAll("Player \x05%N\x01 had to kill \x07%d \x0BCT\x01 to win.", i, GetTeamPlayers(2, true));
+			}
+		}
+		
 		EmitSoundToAll("jordehi/jordehi_lr_activated.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
 	}
 }
@@ -354,9 +363,8 @@ public int Menu_LastRequest(Menu menu, MenuAction action, int client, int param)
 
 		
 		GetLRByID(iInfo, current_lastrequest);
-		InitiateLastRequest(client, client, gB_Random);
 		
-		/*Menu oppMenu = new Menu(Menu_OPPMenu);
+		Menu oppMenu = new Menu(Menu_OPPMenu);
 		oppMenu.SetTitle("Choose your opponent:");
 		
 		Jordehi_LoopClients(i)
@@ -376,7 +384,7 @@ public int Menu_LastRequest(Menu menu, MenuAction action, int client, int param)
 		}
 		
 		oppMenu.ExitButton = false;
-		oppMenu.Display(client, MENU_TIME_FOREVER);*/
+		oppMenu.Display(client, MENU_TIME_FOREVER);
 	}
 	else if (action == MenuAction_End)
 	{
@@ -563,7 +571,7 @@ bool IsAbleToStartLR(int client)
 		return false;
 	}
 	
-	/*if (GetTeamPlayers(3, true) <= 0)
+	if (GetTeamPlayers(3, true) <= 0)
 	{
 		Jordehi_PrintToChat(client, "In order to use this command, there are must be an alive counter terrorist.");
 		return false;
@@ -586,8 +594,6 @@ bool IsAbleToStartLR(int client)
 		Jordehi_PrintToChat(client, "Lastrequest in not available at the moment.");
 		return false;
 	}
-	
-	*/
 	
 	if(gB_Rebel)
 	{
@@ -809,6 +815,10 @@ public int Native_StopLastRequest(Handle plugin, int numParams)
 			{
 				EmitSoundToAll("jordehi/jordehi_lr_end2.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
 			}
+			
+			char sTemp[32];
+			FormatEx(sTemp, 32, "- Lastrequest Winner : %N", gI_LRWinner);
+			Jordehi_UpdateExtraInfo(sTemp);
 			
 			GivePlayerItem(gI_LRWinner, "weapon_knife");
 	

@@ -172,7 +172,6 @@ public void OnClientDisconnect(int client)
 	{
 		if(Jordehi_IsClientInLastRequest(client) && gB_LRStarted)
 		{
-			Jordehi_PrintToChatAll("TEST1");
 			Jordehi_StopLastRequest();
 		}
 		
@@ -212,7 +211,6 @@ public void OnRoundStart(Event e, const char[] name, bool dB)
 
 public Action StopLastrequest_Timer(Handle Timer)
 {
-	Jordehi_PrintToChatAll("TEST2");
 	Jordehi_StopLastRequest();
 }
 
@@ -239,7 +237,6 @@ public void OnPlayerDeath(Event e, const char[] name, bool dB)
 	
 	if(gB_LRStarted && Jordehi_IsClientInLastRequest(victim))
 	{
-		Jordehi_PrintToChatAll("TEST3");
 		gI_LRWinner = Jordehi_GetClientOpponent(victim); //Player might suicide or force to be.
 		Jordehi_StopLastRequest();
 		Command_LastRequest(gI_LRWinner, 0);
@@ -745,7 +742,6 @@ public int Native_GetClientOpponent(Handle plugin, int numParams)
 
 public int Native_StopLastRequest(Handle plugin, int numParams)
 {
-	Jordehi_PrintToChatAll("TESTTTT");
 	if (Jordehi_IsClientValid(gI_LRWinner) && Jordehi_IsClientValid(Jordehi_GetClientOpponent(gI_LRWinner)))
 	{
 		Call_StartForward(gH_Forwards_OnLREnd);

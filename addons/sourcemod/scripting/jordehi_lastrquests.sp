@@ -474,6 +474,7 @@ void InitiateLastRequest(int client, int target, bool bRandom)
 	FormatEx(sTemp, 128, "%s", current_lastrequest.lr_extrainfo);
 	panel.DrawText(sTemp);
 	panel.CurrentKey = 9;
+	panel.DrawItem("Exit", ITEMDRAW_CONTROL);
 	
 	Jordehi_LoopClients(i)
 	{

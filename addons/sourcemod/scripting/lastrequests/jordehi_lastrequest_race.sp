@@ -54,10 +54,6 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	if(StrEqual(lr_name, LR_NAME))
 	{
 		gB_LRActivated = true;
-		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
 	}
 	
 	if(!Jordehi_IsClientValid(terrorist) && !Jordehi_IsClientValid(ct))
@@ -66,22 +62,12 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		return;
 	}
 	
-	if(gB_LRActivated)
+	if(!gB_LRActivated)
 	{
-		OpenSettingsMenu(terrorist);
+		return;
 	}
-}
-
-public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
-{
-	if(gB_LRActivated)
-	{
-		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);		
-		gB_LRActivated = false;
-	}
+	
+	OpenSettingsMenu(terrorist);
 }
 
 void OpenSettingsMenu(int client)
@@ -164,7 +150,10 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 			OpenSettingsMenu(client);
 		}
 	}
-
+	else if(action == MenuAction_Cancel)
+	{
+		Jordehi_StopLastRequest();
+	}
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -179,6 +168,20 @@ void InitiateLR(int client)
 	{
 		return;
 	}
+	
+	if(!Jordehi_IsAbleToStartLR(client))
+	{
+		Jordehi_StopLastRequest();
+		return;
+	}
+	
+	int terrorist = client;
+	int ct = Jordehi_GetClientOpponent(terrorist);
+	
+	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
+	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
 	
 	CreateTimer(1.0, Race_Timer, client, TIMER_REPEAT);
 }
@@ -254,4 +257,26 @@ public Action CS_OnCSWeaponDrop(int client, int weapon)
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
+}
+
+public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
+{
+	if(!gB_LRActivated)
+	{
+		return;
+	}
+		
+	gB_LRActivated = false;
+	
+	if(Jordehi_IsClientValid(winner))
+	{	
+		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
+	}
+	
+	if(Jordehi_IsClientValid(loser))
+	{	
+		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
+	}
 }

@@ -82,7 +82,12 @@ public void OnPlayerFire(Event e, const char[] name, bool dB)
 		return;
 	}
 	
-	if(gB_LRActivated && Jordehi_IsClientInLastRequest(client) && gI_PlayerTurn == client)
+	if(!gB_LRActivated)
+	{
+		return;
+	}
+	
+	if(Jordehi_IsClientInLastRequest(client) && gI_PlayerTurn == client)
 	{
 		int iWeapon = GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY);
 		int iClip1 = GetEntProp(iWeapon, Prop_Data, "m_iClip1");
@@ -102,10 +107,6 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	if(StrEqual(lr_name, LR_NAME))
 	{
 		gB_LRActivated = true;
-		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
 	}
 	
 	if(!Jordehi_IsClientValid(terrorist) && !Jordehi_IsClientValid(ct))
@@ -114,31 +115,33 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		return;
 	}
 	
-	if(gB_LRActivated)
+	if(!gB_LRActivated)
 	{
-		if(random)
-		{
-			int iRand = GetRandomInt(1, 2);
-			if(iRand == 2)
-			{
-				gB_HeadshotsOnly = true;
-			}
-			InitiateLR(terrorist, GetRandomInt(1, sizeof(gS_CSGOPistols)));
-			return;
-		}
-		
-		Menu menu = new Menu(MenuHandler_Weapons);
-		menu.SetTitle("Choose weapon : ");
-		for(int i = 0; i < sizeof(gS_CSGOPistols); i++)
-		{
-			char[] sMenuInfo = new char[8];
-			IntToString(i, sMenuInfo, 8);
-
-			menu.AddItem(sMenuInfo, gS_CSGOPistolNames[i]);
-		}
-		menu.ExitButton = false;
-		menu.Display(terrorist, 60);
+		return;
 	}
+	
+	if(random)
+	{
+		int iRand = GetRandomInt(1, 2);
+		if(iRand == 2)
+		{
+			gB_HeadshotsOnly = true;
+		}
+		InitiateLR(terrorist, GetRandomInt(1, sizeof(gS_CSGOPistols)));
+		return;
+	}
+	
+	Menu menu = new Menu(MenuHandler_Weapons);
+	menu.SetTitle("Choose weapon : ");
+	for(int i = 0; i < sizeof(gS_CSGOPistols); i++)
+	{
+		char[] sMenuInfo = new char[8];
+		IntToString(i, sMenuInfo, 8);
+
+		menu.AddItem(sMenuInfo, gS_CSGOPistolNames[i]);
+	}
+	menu.ExitButton = false;
+	menu.Display(terrorist, 60);
 }
 
 public int MenuHandler_Weapons(Menu menu, MenuAction action, int client, int item)
@@ -152,26 +155,16 @@ public int MenuHandler_Weapons(Menu menu, MenuAction action, int client, int ite
 		
 		OpenSettingsMenu(client);
 	}
-
+	else if(action == MenuAction_Cancel)
+	{
+		Jordehi_StopLastRequest();
+	}
 	else if(action == MenuAction_End)
 	{
 		delete menu;
 	}
 
 	return 0;
-}
-
-public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
-{
-	if(gB_LRActivated)
-	{
-		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
-		gB_LRActivated = false;
-		gB_HeadshotsOnly = false;
-	}
 }
 
 void OpenSettingsMenu(int client)
@@ -209,7 +202,10 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 			OpenSettingsMenu(client);
 		}
 	}
-
+	else if(action == MenuAction_Cancel)
+	{
+		Jordehi_StopLastRequest();
+	}
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -225,12 +221,23 @@ void InitiateLR(int client, int choice)
 		return;
 	}
 	
+	if(!Jordehi_IsAbleToStartLR(client))
+	{
+		Jordehi_StopLastRequest();
+		return;
+	}
+	
 	char sTemp[128];
 	FormatEx(sTemp, 128, "- Weapon : %s \n- Headshots only enabled : %s", gS_CSGOPistols[choice], gB_HeadshotsOnly ? "Yes" : "No");
 	Jordehi_UpdateExtraInfo(sTemp);
 	
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
+	
+	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
+	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
 	
 	GivePlayerItem(terrorist, "weapon_knife");
 	GivePlayerItem(terrorist, gS_CSGOPistols[choice]);
@@ -299,6 +306,29 @@ public Action CS_OnCSWeaponDrop(int client, int weapon)
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
+}
+
+public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
+{
+	if(!gB_LRActivated)
+	{
+		return;
+	}
+	
+	gB_LRActivated = false;
+	gB_HeadshotsOnly = false;
+	
+	if(Jordehi_IsClientValid(winner))
+	{	
+		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
+	}
+	
+	if(Jordehi_IsClientValid(loser))
+	{	
+		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
+	}
 }
 
 //Thanks shavit

@@ -79,5 +79,6 @@ Complete rework of my current plugins, Jailbreak management and last requests ha
 - [x] bool Jordehi_RegisterLR(const char[] name, const char[] extrainfo);
 - [x] bool Jordehi_UpdateExtraInfo(const char[] extrainfo);
 - [x] bool Jordehi_IsClientInLastRequest(int client);
+- [x] bool Jordehi_IsAbleToStartLR(int client);
 - [x] int Jordehi_GetClientOpponent(int client);
 - [x] void Jordehi_StopLastRequest();

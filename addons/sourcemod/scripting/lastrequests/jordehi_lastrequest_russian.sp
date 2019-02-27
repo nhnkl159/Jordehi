@@ -53,12 +53,16 @@ public void OnPlayerFire(Event e, const char[] name, bool dB)
 		return;
 	}
 	
-	if(gB_LRActivated && Jordehi_IsClientInLastRequest(client) && gI_PlayerTurn == client)
+	if(!gB_LRActivated)
+	{
+		return;
+	}
+	
+	if(Jordehi_IsClientInLastRequest(client) && gI_PlayerTurn == client)
 	{
 		gI_PlayerTurn = Jordehi_GetClientOpponent(client);
 		int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
 		SetWeaponAmmo(gI_PlayerTurn, iWeapon, 1, 0);
-		
 	}
 }
 
@@ -67,12 +71,6 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	if(StrEqual(lr_name, LR_NAME))
 	{
 		gB_LRActivated = true;
-		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
-		Jordehi_UpdateExtraInfo("- Nothing here");
-		InitiateLR(terrorist);
 	}
 	
 	if(!Jordehi_IsClientValid(terrorist) && !Jordehi_IsClientValid(ct))
@@ -80,20 +78,13 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		Jordehi_StopLastRequest();
 		return;
 	}
-}
-
-public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
-{
-	if(gB_LRActivated)
+	
+	if(!gB_LRActivated)
 	{
-		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
-		gB_LRActivated = false;
-		SetEntityMoveType(winner, MOVETYPE_WALK);
-		SetEntityMoveType(loser, MOVETYPE_WALK);
+		return;
 	}
+	
+	InitiateLR(terrorist);
 }
 
 void InitiateLR(int client)
@@ -103,8 +94,19 @@ void InitiateLR(int client)
 		return;
 	}
 	
+	if(!Jordehi_IsAbleToStartLR(client))
+	{
+		Jordehi_StopLastRequest();
+		return;
+	}
+	
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
+	
+	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
+	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
 	
 	if(!IsSafeTeleport(terrorist, 250.0))
 	{
@@ -216,6 +218,30 @@ public Action CS_OnCSWeaponDrop(int client, int weapon)
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
+}
+
+public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
+{
+	if(!gB_LRActivated)
+	{
+		return;
+	}
+	
+	gB_LRActivated = false;
+	
+	if(Jordehi_IsClientValid(winner))
+	{	
+		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
+		SetEntityMoveType(winner, MOVETYPE_WALK);
+	}
+	
+	if(Jordehi_IsClientValid(loser))
+	{	
+		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
+		SetEntityMoveType(loser, MOVETYPE_WALK);
+	}
 }
 
 //Thanks shavit

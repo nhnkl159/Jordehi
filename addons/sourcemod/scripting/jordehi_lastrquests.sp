@@ -54,6 +54,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Jordehi_RegisterLR", Native_RegisterLR);
 	CreateNative("Jordehi_UpdateExtraInfo", Native_UpdateExtraInfo);
 	CreateNative("Jordehi_IsClientInLastRequest", Native_IsClientInLastRequest);
+	CreateNative("Jordehi_IsAbleToStartLR", Native_IsAbleToStartLR);
 	CreateNative("Jordehi_GetClientOpponent", Native_GetClientOpponent);
 	CreateNative("Jordehi_StopLastRequest", Native_StopLastRequest);
 	
@@ -718,6 +719,7 @@ public int Native_UpdateExtraInfo(Handle plugin, int numParams)
 	FormatEx(sTemp, 328, "%s", current_lastrequest.lr_extrainfo);
 	panel.DrawText(sTemp);
 	panel.CurrentKey = 9;
+	panel.DrawItem("Exit", ITEMDRAW_CONTROL);
 	
 	Jordehi_LoopClients(i)
 	{
@@ -727,10 +729,18 @@ public int Native_UpdateExtraInfo(Handle plugin, int numParams)
 	return true;
 }
 
+
 public int Native_IsClientInLastRequest(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	return gB_InLR[client];
+}
+
+
+public int Native_IsAbleToStartLR(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	return IsAbleToStartLR(client);
 }
 
 public int Native_GetClientOpponent(Handle plugin, int numParams)

@@ -63,43 +63,27 @@ public void OnPlayerFire(Event e, const char[] name, bool dB)
 	}
 }
 
-public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random)
+public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 {
-	if(StrEqual(lr_name, LR_NAME))
+	if(!gB_LRActivated)
 	{
-		gB_LRActivated = true;
-		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKHook(terrorist, SDKHook_PreThink, PreThink);
-		SDKHook(ct, SDKHook_PreThink, PreThink);
-	}
-	
-	if(!Jordehi_IsClientValid(terrorist) && !Jordehi_IsClientValid(ct))
-	{
-		Jordehi_StopLastRequest();
 		return;
 	}
 	
-	if(gB_LRActivated)
-	{
-		InitiateLR(terrorist);
-	}
-}
-
-public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
-{
-	if(gB_LRActivated)
+	gB_LRActivated = false;
+	iInfectedPlayer = 0;
+	
+	if(Jordehi_IsClientValid(winner))
 	{
 		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
 		SDKUnhook(winner, SDKHook_PreThink, PreThink);
+	}
+	if(Jordehi_IsClientValid(loser))
+	{
+		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
 		SDKUnhook(loser, SDKHook_PreThink, PreThink);
-		gB_LRActivated = false;
-		iInfectedPlayer = 0;
 	}
 }
 
@@ -110,6 +94,22 @@ void InitiateLR(int client)
 		return;
 	}
 	
+	if(!Jordehi_IsAbleToStartLR(client))
+	{
+		Jordehi_StopLastRequest();
+		return;
+	}
+	
+	int terrorist = client;
+	int ct = Jordehi_GetClientOpponent(terrorist);
+	
+	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
+	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
+	SDKHook(terrorist, SDKHook_PreThink, PreThink);
+	SDKHook(ct, SDKHook_PreThink, PreThink);
+
 	fFloatTime = GetEngineTime();
 	CreateTimer(0.1, Timer_Countdown, client, TIMER_REPEAT);
 	
@@ -252,6 +252,25 @@ public Action CS_OnCSWeaponDrop(int client, int weapon)
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
+}
+
+public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random)
+{
+	if(StrEqual(lr_name, LR_NAME))
+	{
+		gB_LRActivated = true;
+	}
+	
+	if(!Jordehi_IsClientValid(terrorist) && !Jordehi_IsClientValid(ct))
+	{
+		Jordehi_StopLastRequest();
+		return;
+	}
+	
+	if(gB_LRActivated)
+	{
+		InitiateLR(terrorist);
+	}
 }
 
 //Thanks shavit

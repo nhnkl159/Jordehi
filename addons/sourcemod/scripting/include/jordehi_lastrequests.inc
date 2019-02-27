@@ -96,6 +96,14 @@ native bool Jordehi_UpdateExtraInfo(const char[] extrainfo);
 native bool Jordehi_IsClientInLastRequest(int client);
 
 /**
+ * This native will check if client is able to start lastrequest.
+ *
+ * @param client					Client index.
+ * @return							true
+ */
+native bool Jordehi_IsAbleToStartLR(int client);
+
+/**
  * This native will return client opponent in lastrequest.
  *
  * @param client					Client index.

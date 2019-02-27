@@ -49,8 +49,6 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	if(StrEqual(lr_name, LR_NAME))
 	{
 		gB_LRActivated = true;
-		SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
 	}
 	
 	if(!Jordehi_IsClientValid(terrorist) || !Jordehi_IsClientValid(ct))
@@ -59,15 +57,18 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		return;
 	}
 	
-	if(gB_LRActivated)
+	if(!gB_LRActivated)
 	{
-		if(random)
-		{
-			InitiateLR(terrorist, GetRandomInt(1, 4));
-			return;
-		}
-		OpenSettingsMenu(terrorist);
+		return;
 	}
+	
+	if(random)
+	{
+		InitiateLR(terrorist, GetRandomInt(1, 4));
+		return;
+	}
+	
+	OpenSettingsMenu(terrorist);
 }
 
 
@@ -129,7 +130,10 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 			}
 		}
 	}
-
+	else if(action == MenuAction_Cancel)
+	{
+		Jordehi_StopLastRequest();
+	}
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -154,37 +158,26 @@ public int KnifeModes_Handler(Menu menu, MenuAction action, int client, int item
 	}
 }
 
-public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
-{
-	if(gB_LRActivated)
-	{
-		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		gB_LRActivated = false;
-		gI_Choice = 1;
-	}
-	if(gB_Backstab)
-	{
-		SDKUnhook(winner, SDKHook_TraceAttack, OnTraceAttack);
-		SDKUnhook(loser, SDKHook_TraceAttack, OnTraceAttack);
-		gB_Backstab = false;
-	}
-	if(Jordehi_IsClientValid(winner))
-	{
-		SetEntPropFloat(winner, Prop_Data, "m_flLaggedMovementValue", 1.0);
-		DrugPlayer(winner, false);
-	}
-	if(Jordehi_IsClientValid(loser))
-	{
-		SetEntPropFloat(loser, Prop_Data, "m_flLaggedMovementValue", 1.0);
-		DrugPlayer(loser, false);
-	}
-}
-
 void InitiateLR(int client, int choice)
 {
+	if(!gB_LRActivated)
+	{
+		return;
+	}
+	
+	if(!Jordehi_IsAbleToStartLR(client))
+	{
+		Jordehi_StopLastRequest();
+		return;
+	}
+	
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
+	
+	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(terrorist, SDKHook_TraceAttack, OnTraceAttack);
+	SDKHook(ct, SDKHook_TraceAttack, OnTraceAttack);
 	
 	switch(choice)
 	{
@@ -195,8 +188,6 @@ void InitiateLR(int client, int choice)
 		case 2:
 		{
 			gB_Backstab = true;
-			SDKHook(terrorist, SDKHook_TraceAttack, OnTraceAttack);
-			SDKHook(ct, SDKHook_TraceAttack, OnTraceAttack);
 			Jordehi_UpdateExtraInfo("- Current Mode : Backstabs only");
 		}
 		case 3:
@@ -211,11 +202,6 @@ void InitiateLR(int client, int choice)
 			DrugPlayer(ct, true);
 			Jordehi_UpdateExtraInfo("- Current Mode : Party Mode");
 		}
-	}
-	
-	if(!gB_LRActivated)
-	{
-		return;
 	}
 	
 	GivePlayerItem(terrorist, "weapon_knife");
@@ -277,6 +263,37 @@ public Action OnTraceAttack(int victim, int &attacker, int &inflictor, float &da
 	}
 	
 	return Plugin_Handled;
+}
+
+public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
+{
+	if(!gB_LRActivated)
+	{
+		return;
+	}
+	
+	gB_LRActivated = false;
+	gI_Choice = 1;
+	
+	if(gB_Backstab)
+	{
+		gB_Backstab = false;
+	}
+	
+	if(Jordehi_IsClientValid(winner))
+	{
+		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(winner, SDKHook_TraceAttack, OnTraceAttack);
+		SetEntPropFloat(winner, Prop_Data, "m_flLaggedMovementValue", 1.0);
+		DrugPlayer(winner, false);
+	}
+	if(Jordehi_IsClientValid(loser))
+	{
+		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(loser, SDKHook_TraceAttack, OnTraceAttack);
+		SetEntPropFloat(loser, Prop_Data, "m_flLaggedMovementValue", 1.0);
+		DrugPlayer(loser, false);
+	}
 }
 
 void DrugPlayer(int target, bool toggle)

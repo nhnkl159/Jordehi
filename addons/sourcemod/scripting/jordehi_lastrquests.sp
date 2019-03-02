@@ -108,7 +108,7 @@ public void OnPluginStart()
 		}
 	}
 	
-	AutoExecConfig();
+	AutoExecConfig(true, "sm_jordehi_lastrequests");
 }
 
 public Action BlockRadio(UserMsg msg_id, Protobuf msg, const int[] players, int playersNum, bool reliable, bool init)
@@ -569,32 +569,32 @@ bool IsAbleToStartLR(int client)
 {
 	if (GetClientTeam(client) != CS_TEAM_T || !IsPlayerAlive(client) || GetTeamPlayers(2, true) > 1)
 	{
-		Jordehi_PrintToChat(client, "In order to use this command, you must be the last terrorist alive.");
+		Jordehi_PrintToChat(client, "To use this command, you must be the last terrorist alive.");
 		return false;
 	}
 	
 	if (GetTeamPlayers(3, true) <= 0)
 	{
-		Jordehi_PrintToChat(client, "In order to use this command, there are must be an alive counter terrorist.");
+		Jordehi_PrintToChat(client, "To use this command, there are must be an alive counter terrorist.");
 		return false;
 	}
 	
 	if (gB_LRStarted)
 	{
-		Jordehi_PrintToChat(client, "In order to use this command, there are must be no active lastrequest.");
+		Jordehi_PrintToChat(client, "To use this command, there are must be no active last request.");
 		return false;
 	}
 	
 	if (gB_InLR[client])
 	{
-		Jordehi_PrintToChat(client, "In order to use this command, there are must be no active lastrequest.");
+		Jordehi_PrintToChat(client, "To use this command, there are must be no active last requests.");
 		return false;
 	}
 	
 	
 	if(gB_Rebel)
 	{
-		Jordehi_PrintToChat(client, "Lastrequest in not available after you choosed to rebel.");
+		Jordehi_PrintToChat(client, "The last request is not available after you chose to rebel.");
 		return false;
 	}
 	
@@ -741,7 +741,25 @@ public int Native_IsClientInLastRequest(Handle plugin, int numParams)
 public int Native_IsAbleToStartLR(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
-	return IsAbleToStartLR(client);
+	if (GetClientTeam(client) != CS_TEAM_T || !IsPlayerAlive(client) || GetTeamPlayers(2, true) > 1)
+	{
+		Jordehi_PrintToChat(client, "To use this command, you must be the last terrorist alive.");
+		return false;
+	}
+	
+	if (GetTeamPlayers(3, true) <= 0)
+	{
+		Jordehi_PrintToChat(client, "To use this command, there are must be an alive counter terrorist.");
+		return false;
+	}
+	
+	if(gB_Rebel)
+	{
+		Jordehi_PrintToChat(client, "The last request is not available after you chose to rebel.");
+		return false;
+	}
+	
+	return true;
 }
 
 public int Native_GetClientOpponent(Handle plugin, int numParams)

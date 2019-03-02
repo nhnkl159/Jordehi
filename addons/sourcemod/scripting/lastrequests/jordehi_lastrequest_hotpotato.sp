@@ -257,20 +257,12 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 	gI_PotatoPlayer = 0;
 	gI_HotPotatoDeagle = -1;
 	
-	if(Jordehi_IsClientValid(winner))
+	Jordehi_LoopClients(i)
 	{
-		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
-		SetEntityMoveType(winner, MOVETYPE_WALK);
-		SetEntPropFloat(winner, Prop_Data, "m_flLaggedMovementValue", 1.0);
-	}
-	
-	if(Jordehi_IsClientValid(loser))
-	{
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
-		SetEntityMoveType(loser, MOVETYPE_WALK);
-		SetEntPropFloat(loser, Prop_Data, "m_flLaggedMovementValue", 1.0);
+		SDKUnhook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+		SetEntityMoveType(i, MOVETYPE_WALK);
+		SetEntPropFloat(i, Prop_Data, "m_flLaggedMovementValue", 1.0);
 	}
 }
 

@@ -12,6 +12,7 @@
 // === Integers === //
 
 // === Strings === //
+char gS_VoteCT_Winner[32]; //Smart one shavit ;)
 
 // === Booleans === //
 bool gB_Late = false;
@@ -19,6 +20,9 @@ bool gB_Late = false;
 // === Floats === //
 
 // === Handles === //
+Handle gH_Forwards_OnVoteCTStart = null;
+Handle gH_Forwards_OnVoteCTEnd = null;
+Handle gH_Forwards_OnVoteCTChat = null;
 
 public Plugin myinfo = 
 {
@@ -34,6 +38,14 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	RegPluginLibrary("jordehi_jailbreak");
 	
 	CreateNative("Jordehi_PrintToChat", Native_PrintToChat);
+	CreateNative("Jordehi_FinishVoteCT", Native_FinishVoteCT);
+	CreateNative("Jordehi_RegisterVoteCT", Native_RegisterVoteCT);
+	CreateNative("Jordehi_UpdateVoteCTInfo", Native_UpdateVoteCTInfo);
+	CreateNative("Jordehi_InVoteCT", Native_InVoteCT);
+	CreateNative("Jordehi_GetVoteCTWinner", Native_GetVoteCTWinner);
+	CreateNative("Jordehi_SetVoteCTWinner", Native_SetVoteCTWinner);
+	CreateNative("Jordehi_SetVIP", Native_SetVIP);
+	CreateNative("Jordehi_StopVoteCT", Native_StopVoteCT);
 
 	gB_Late = late;
 	
@@ -62,7 +74,7 @@ public void OnPluginStart()
 		}
 	}
 	
-	AutoExecConfig();
+	AutoExecConfig(true, "sm_jordehi_jailbreak");
 }
 
 

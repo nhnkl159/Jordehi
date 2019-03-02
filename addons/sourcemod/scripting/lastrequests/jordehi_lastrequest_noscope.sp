@@ -312,18 +312,11 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 	gB_LRActivated = false;
 	gB_HeadshotsOnly = false;
 	
-	if(Jordehi_IsClientValid(winner))
-	{	
-		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKUnhook(winner, SDKHook_PreThink, PreThink);
-	}
-	
-	if(Jordehi_IsClientValid(loser))
-	{	
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
-		SDKUnhook(loser, SDKHook_PreThink, PreThink);
+	Jordehi_LoopClients(i)
+	{
+		SDKUnhook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+		SDKUnhook(i, SDKHook_PreThink, PreThink);
 	}
 }
 

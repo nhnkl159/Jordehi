@@ -280,19 +280,12 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 		gB_Backstab = false;
 	}
 	
-	if(Jordehi_IsClientValid(winner))
+	Jordehi_LoopClients(i)
 	{
-		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(winner, SDKHook_TraceAttack, OnTraceAttack);
-		SetEntPropFloat(winner, Prop_Data, "m_flLaggedMovementValue", 1.0);
-		DrugPlayer(winner, false);
-	}
-	if(Jordehi_IsClientValid(loser))
-	{
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_TraceAttack, OnTraceAttack);
-		SetEntPropFloat(loser, Prop_Data, "m_flLaggedMovementValue", 1.0);
-		DrugPlayer(loser, false);
+		SDKUnhook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(i, SDKHook_TraceAttack, OnTraceAttack);
+		SetEntPropFloat(i, Prop_Data, "m_flLaggedMovementValue", 1.0);
+		DrugPlayer(i, false);
 	}
 }
 

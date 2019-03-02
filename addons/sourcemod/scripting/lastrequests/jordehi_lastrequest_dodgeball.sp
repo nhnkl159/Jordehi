@@ -257,20 +257,12 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 	
 	gB_LRActivated = false;
 	gB_Gravity = false;
-		
-	if(Jordehi_IsClientValid(winner))
-	{
-		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
-		SetEntProp(winner, Prop_Data, "m_CollisionGroup", 2);
-		SetEntityGravity(winner, 1.0);
-	}
 	
-	if(Jordehi_IsClientValid(loser))
+	Jordehi_LoopClients(i)
 	{
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
-		SetEntProp(loser, Prop_Data, "m_CollisionGroup", 2);
-		SetEntityGravity(loser, 1.0);
+		SDKUnhook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+		SetEntProp(i, Prop_Data, "m_CollisionGroup", 2);
+		SetEntityGravity(i, 1.0);
 	}
 }

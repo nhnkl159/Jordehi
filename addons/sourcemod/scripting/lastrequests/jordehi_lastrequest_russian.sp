@@ -203,10 +203,10 @@ public Action OnWeaponCanUse(int client, int weapon)
 	char sWeapon[32];
 	GetEntityClassname(weapon, sWeapon, 32);
 	
-	if(!StrEqual(sWeapon, "weapon_deagle"))
+	/*if(!StrEqual(sWeapon, "weapon_deagle"))
 	{
 		return Plugin_Handled;
-	}
+	}*/
 	
 	return Plugin_Continue;
 }
@@ -229,18 +229,11 @@ public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)
 	
 	gB_LRActivated = false;
 	
-	if(Jordehi_IsClientValid(winner))
-	{	
-		SDKUnhook(winner, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(winner, SDKHook_OnTakeDamage, OnTakeDamage);
-		SetEntityMoveType(winner, MOVETYPE_WALK);
-	}
-	
-	if(Jordehi_IsClientValid(loser))
-	{	
-		SDKUnhook(loser, SDKHook_WeaponCanUse, OnWeaponCanUse);
-		SDKUnhook(loser, SDKHook_OnTakeDamage, OnTakeDamage);
-		SetEntityMoveType(loser, MOVETYPE_WALK);
+	Jordehi_LoopClients(i)
+	{
+		SDKUnhook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		SDKUnhook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+		SetEntityMoveType(i, MOVETYPE_WALK);
 	}
 }
 

@@ -332,21 +332,21 @@ void ShowAvailableLastRequestsMenu(int client)
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
-public int Menu_LastRequest(Menu menu, MenuAction action, int client, int param)
+public int Menu_LastRequest(Menu menu, MenuAction action, int client, int item)
 {
 	if (action == MenuAction_Select)
 	{
-		char sParam[32];
-		GetMenuItem(menu, param, sParam, sizeof(sParam));
+		char sInfo[32];
+		menu.GetItem(item, sInfo, 32);
 		
 		if(!IsAbleToStartLR(client))
 		{
 			return 0;
 		}
 		
-		int iInfo = StringToInt(sParam);
+		int iInfo = StringToInt(sInfo);
 		
-		if(StrEqual(sParam, "rebel"))
+		if(StrEqual(sInfo, "rebel"))
 		{
 			gB_Rebel = true;
 			GivePlayerItem(client, "weapon_negev");
@@ -356,7 +356,7 @@ public int Menu_LastRequest(Menu menu, MenuAction action, int client, int param)
 		}
 		
 		
-		if(StrEqual(sParam, "rand"))
+		if(StrEqual(sInfo, "rand"))
 		{
 			iInfo = GetRandomInt(1, gA_Games.Length);
 			gB_Random = true;

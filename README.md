@@ -7,7 +7,7 @@ Complete rework of my current plugins, Jailbreak management and last requests ha
 * Use "Addicted." CTBans to check if the player is a free killer and block him from participate in the VoteCT.
 * UI and sounds to make it more fun I guess.
 ### Admin Commands
-- [ ] **sm_votect** - Initiates a manual CT vote.
+- [x] **sm_votect** - Initiates a manual CT vote.
 - [ ] **sm_viewkills** - Open's a menu with all kills made on that round.
 - [ ] **sm_hns** - Open's a menu with enable/disable Hide and Seek options.
 - [ ] **sm_ck** - Open's a menu with enable/disable Crazy Knife options.
@@ -33,19 +33,16 @@ Complete rework of my current plugins, Jailbreak management and last requests ha
 - [ ] **sm_medic** - Request's medic from counter terrorists.
 
 ### Developer API
-- [ ] void Jordehi_OnVoteCTStart(char[] votect_name);
-- [ ] void Jordehi_OnVoteCTEnd(char[] votect_name, int winner); 
-- [ ] void Jordehi_OnVoteCTChat(int client, char[] message); 
+- [x] void Jordehi_OnVoteCTStart(char[] votect_name);
+- [x] void Jordehi_OnVoteCTEnd(char[] votect_name, int winner); 
+- [x] void Jordehi_OnVoteCTChat(int client, char[] message); 
 #### **Natives**
 - [x] int Jordehi_PrintToChat(int client, const char[] format, any ...);
-- [ ] bool Jordehi_FinishVoteCT(int winner);
-- [ ] bool Jordehi_RegisterVoteCT(const char[] name, float time, const char[] extrainfo);
-- [ ] bool Jordehi_UpdateVoteCTInfo(const char[] extrainfo);
-- [ ] bool Jordehi_InVoteCT();
-- [ ] bool Jordehi_GetVoteCTWinner();
-- [ ] bool Jordehi_SetVoteCTWinner(int client);
-- [ ] bool Jordehi_SetVIP(int client);
-- [ ] void Jordehi_StopVoteCT();
+- [x] bool Jordehi_RegisterVoteCT(const char[] name, const char[] extrainfo, float time);
+- [x] bool Jordehi_InVoteCT();
+- [x] bool Jordehi_SetVoteCTWinner(int client);
+- [x] bool Jordehi_SetVIP(int client);
+- [x] void Jordehi_StopVoteCT(int winner);
 
 ## Last requests
 * Includes API to register new last requests to make it easier to add & remove (dynamic).

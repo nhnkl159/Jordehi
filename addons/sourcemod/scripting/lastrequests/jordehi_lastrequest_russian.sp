@@ -103,10 +103,14 @@ void InitiateLR(int client)
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
 	
-	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
+	Jordehi_LoopClients(i)
+	{
+		if(IsPlayerAlive(i))
+		{
+			SDKHook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+			SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+		}
+	}
 	
 	if(!IsSafeTeleport(terrorist, 250.0))
 	{
@@ -116,19 +120,6 @@ void InitiateLR(int client)
 		Jordehi_StopLastRequest();
 		return;
 	}
-	
-	GivePlayerItem(terrorist, "weapon_deagle");
-	GivePlayerItem(ct, "weapon_deagle");
-	
-	SetEntityMoveType(terrorist, MOVETYPE_NONE);
-	SetEntityMoveType(ct, MOVETYPE_NONE);
-	
-	int iRand = GetRandomInt(1, 2);
-	gI_PlayerTurn = iRand == 1 ? terrorist : ct;
-	
-	int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
-	
-	SetWeaponAmmo(gI_PlayerTurn, iWeapon, 1, 0);
 
 	float fClientOrigin[3];
 	GetClientAbsOrigin(terrorist, fClientOrigin);
@@ -155,6 +146,27 @@ void InitiateLR(int client)
 
 	TeleportEntity(ct, fClientOrigin, fEyeAngles, view_as<float>({0.0, 0.0, 0.0}));
 	
+	CreateTimer(0.3, GibDeagles, client);
+}
+
+public Action GibDeagles(Handle timer, any client)
+{
+	int ct = Jordehi_GetClientOpponent(client);
+	
+	SetEntityMoveType(client, MOVETYPE_NONE);
+	SetEntityMoveType(ct, MOVETYPE_NONE);
+	
+	GivePlayerItem(client, "weapon_deagle");
+	GivePlayerItem(ct, "weapon_deagle");
+	
+	int iRand = GetRandomInt(1, 2);
+	gI_PlayerTurn = iRand == 1 ? client : ct;
+	
+	int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
+	int iWeapon_opp = GetPlayerWeaponSlot(Jordehi_GetClientOpponent(gI_PlayerTurn), CS_SLOT_SECONDARY);
+	
+	SetWeaponAmmo(gI_PlayerTurn, iWeapon, 1, 0);
+	SetWeaponAmmo(Jordehi_GetClientOpponent(gI_PlayerTurn), iWeapon_opp, 0, 0);
 }
 
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
@@ -166,7 +178,11 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	
 	if(gB_LRActivated)
 	{
-		int iWeapon = GetPlayerWeaponSlot(attacker, CS_SLOT_SECONDARY);
+		if(!Jordehi_IsClientInLastRequest(attacker))
+		{
+			damage = 0.0;
+			return Plugin_Changed;
+		}
 
 		int iRandom = GetRandomInt(1, 8);
 
@@ -174,12 +190,8 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		{
 			case 1:
 			{
-				SDKHooks_TakeDamage(victim, attacker, attacker, GetClientHealth(victim) * 1.0, CS_DMG_HEADSHOT, iWeapon);
-			}
-
-			case 2:
-			{
-				SDKHooks_TakeDamage(attacker, attacker, victim, GetClientHealth(attacker) * 1.0, CS_DMG_HEADSHOT, iWeapon);
+				damage = 100.0;
+				return Plugin_Changed;
 			}
 
 			default:
@@ -203,17 +215,17 @@ public Action OnWeaponCanUse(int client, int weapon)
 	char sWeapon[32];
 	GetEntityClassname(weapon, sWeapon, 32);
 	
-	/*if(!StrEqual(sWeapon, "weapon_deagle"))
+	if(!StrEqual(sWeapon, "weapon_deagle"))
 	{
 		return Plugin_Handled;
-	}*/
+	}
 	
 	return Plugin_Continue;
 }
 
 public Action CS_OnCSWeaponDrop(int client, int weapon)
 {
-	if(gB_LRActivated)
+	if(gB_LRActivated && Jordehi_IsClientInLastRequest(client))
 	{
 		return Plugin_Handled;
 	}

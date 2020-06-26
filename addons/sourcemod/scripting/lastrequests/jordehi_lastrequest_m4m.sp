@@ -8,7 +8,7 @@
 
 #pragma newdecls required
 
-#define LR_NAME "Shot4Shot"
+#define LR_NAME "Mag4Mag"
 #define PLUGIN_NAME "Jordehi - Last Request - " ... LR_NAME
 
 // === Integers === //
@@ -234,10 +234,14 @@ void InitiateLR(int client, int choice)
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
 	
-	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
+	Jordehi_LoopClients(i)
+	{
+		if(IsPlayerAlive(i))
+		{
+			SDKHook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+			SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+		}
+	}
 	
 	GivePlayerItem(terrorist, "weapon_knife");
 	GivePlayerItem(terrorist, gS_CSGOPistols[choice]);
@@ -249,8 +253,10 @@ void InitiateLR(int client, int choice)
 	gI_PlayerTurn = iRand == 1 ? terrorist : ct;
 	
 	int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
+	int iWeapon_opp = GetPlayerWeaponSlot(Jordehi_GetClientOpponent(gI_PlayerTurn), CS_SLOT_SECONDARY);
 	
 	SetWeaponAmmo(gI_PlayerTurn, iWeapon, 7, 0);
+	SetWeaponAmmo(Jordehi_GetClientOpponent(gI_PlayerTurn), iWeapon_opp, 0, 0);
 }
 
 public Action OnWeaponCanUse(int client, int weapon)

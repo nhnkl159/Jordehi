@@ -161,8 +161,13 @@ void InitiateLR(int client)
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
 	
-	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	Jordehi_LoopClients(i)
+	{
+		if(IsPlayerAlive(i))
+		{
+			SDKHook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		}
+	}
 	
 	int iRand = GetRandomInt(1, 2);
 	gI_CurrentThrower = iRand == 1 ? terrorist : Jordehi_GetClientOpponent(terrorist);
@@ -183,7 +188,7 @@ void InitiateLR(int client)
 	
 	gB_Equip = false;
 	
-	CreateTimer(1.0, Timer_DeagleToss, terrorist, TIMER_REPEAT);
+	CreateTimer(0.5, Timer_DeagleToss, terrorist, TIMER_REPEAT);
 }
 
 //Thanks shavit Kappa
@@ -373,15 +378,21 @@ public Action CS_OnCSWeaponDrop(int client, int weapon)
 		return Plugin_Continue;
 	}
 	
+	if(client != gI_CurrentThrower)
+	{
+		return Plugin_Handled;
+	}
+	
 	if(gB_PlayerDrop[client])
 	{
 		Jordehi_PrintToChat(client, "You already dropped your deagle.");
 		return Plugin_Handled;
 	}
 	
-	if(Jordehi_IsClientInLastRequest(client) && !gB_PlayerDrop[client] && gI_CurrentThrower && (weapon == gI_Deagles[gI_CurrentThrower]))
+	if(Jordehi_IsClientInLastRequest(client) && !gB_PlayerDrop[client] && (weapon == gI_Deagles[gI_CurrentThrower]))
 	{
 		gB_PlayerDrop[client] = true;
+		gI_CurrentThrower = Jordehi_GetClientOpponent(gI_CurrentThrower);
 	}
 	
 

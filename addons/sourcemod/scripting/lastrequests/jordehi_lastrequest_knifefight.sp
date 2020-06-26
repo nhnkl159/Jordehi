@@ -174,10 +174,15 @@ void InitiateLR(int client, int choice)
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
 	
-	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(terrorist, SDKHook_TraceAttack, OnTraceAttack);
-	SDKHook(ct, SDKHook_TraceAttack, OnTraceAttack);
+	Jordehi_LoopClients(i)
+	{
+		if(IsPlayerAlive(i))
+		{
+			SDKHook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+			SDKHook(i, SDKHook_TraceAttack, OnTraceAttack);
+		}
+	}
+	
 	
 	switch(choice)
 	{
@@ -262,7 +267,7 @@ public Action OnTraceAttack(int victim, int &attacker, int &inflictor, float &da
 		}
 	}
 	
-	return Plugin_Handled;
+	return Plugin_Continue;
 }
 
 public void Jordehi_OnLREnd(char[] lr_name, int winner, int loser)

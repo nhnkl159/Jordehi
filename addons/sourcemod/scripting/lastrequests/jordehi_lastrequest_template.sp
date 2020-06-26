@@ -120,11 +120,14 @@ void InitiateLR(int client)
 	FormatEx(sTemp, 128, "- Something enabled : %s", gB_Something ? "Yes" : "No");
 	Jordehi_UpdateExtraInfo(sTemp);*/
 	
-	int terrorist = client;
-	int ct = Jordehi_GetClientOpponent(terrorist);
 	
-	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	Jordehi_LoopClients(i)
+	{
+		if(IsPlayerAlive(i))
+		{
+			SDKHook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+		}
+	}
 }
 
 public Action OnWeaponCanUse(int client, int weapon)

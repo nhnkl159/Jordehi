@@ -6,6 +6,7 @@
 #include <jordehi_jailbreak>
 #include <jordehi_lastrequests>
 #include <geoip>
+#include <smlib>
 
 #pragma newdecls required
 #define REQUIRE_PLUGIN
@@ -219,6 +220,11 @@ public void OnPlayerSpawn(Event e, const char[] name, bool dB)
 {
 	int client = GetClientOfUserId(e.GetInt("userid"));
 	
+	CreateTimer(0.5, DelayPlayer_Timer, client);
+}
+
+public Action DelayPlayer_Timer(Handle timer, any client)
+{
 	Jordehi_StripAllWeapons(client);
 	
 	GivePlayerItem(client, "weapon_knife");
@@ -431,6 +437,12 @@ void InitiateLastRequest(int client, int target, bool bRandom)
 		return;
 	}
 	
+	if(!IsAbleToStartLR(client))
+	{
+		Jordehi_PrintToChatAll("Last request aborted! Client invalid");
+		return;
+	}
+	
 	EmitSoundToAll("jordehi/lastrequest/jordehi_lr_start.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
 	
 	gB_LRStarted = true;
@@ -454,8 +466,8 @@ void InitiateLastRequest(int client, int target, bool bRandom)
 	SavePrimaryAndSecondary(client);
 	SavePrimaryAndSecondary(target);
 	
-	Jordehi_StripAllWeapons(client);
-	Jordehi_StripAllWeapons(target);
+	Client_RemoveAllWeapons(client);
+	Client_RemoveAllWeapons(target);
 	
 	Jordehi_PrintToChatAll("Game : \x07%s\x01 | Player : \x07%N\x01 | Opponent : \x07%N\x01", current_lastrequest.lr_name, client, target);
 	
@@ -830,10 +842,10 @@ public int Native_StopLastRequest(Handle plugin, int numParams)
 	
 	Jordehi_LoopClients(i)
 	{
+		gB_InLR[i] = false;
 		if (gB_InLR[i])
 		{
 			SetEntityHealth(i, 100);
-			gB_InLR[i] = false;
 		}
 		else if(gI_LROpponent[i])
 		{

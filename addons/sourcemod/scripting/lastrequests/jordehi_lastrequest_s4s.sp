@@ -114,6 +114,7 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 		return;
 	}
 	
+	
 	if(random)
 	{
 		int iRand = GetRandomInt(1, 2);
@@ -228,10 +229,14 @@ void InitiateLR(int client, int choice)
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
 	
-	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
+	Jordehi_LoopClients(i)
+	{
+		if(IsPlayerAlive(i))
+		{
+			SDKHook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+			SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+		}
+	}
 	
 	GivePlayerItem(terrorist, "weapon_knife");
 	GivePlayerItem(terrorist, gS_CSGOPistols[choice]);
@@ -242,9 +247,13 @@ void InitiateLR(int client, int choice)
 	int iRand = GetRandomInt(1, 2);
 	gI_PlayerTurn = iRand == 1 ? terrorist : ct;
 	
+	Jordehi_PrintToChatAll("\x07%N\x01 was selected randomaly to shot first !", gI_PlayerTurn);
+	
 	int iWeapon = GetPlayerWeaponSlot(gI_PlayerTurn, CS_SLOT_SECONDARY);
+	int iWeapon_opp = GetPlayerWeaponSlot(Jordehi_GetClientOpponent(gI_PlayerTurn), CS_SLOT_SECONDARY);
 	
 	SetWeaponAmmo(gI_PlayerTurn, iWeapon, 1, 0);
+	SetWeaponAmmo(Jordehi_GetClientOpponent(gI_PlayerTurn), iWeapon_opp, 0, 0);
 }
 
 public Action OnWeaponCanUse(int client, int weapon)

@@ -13,6 +13,7 @@
 
 // === Integers === //
 
+
 // === Strings === //
 
 // === Booleans === //
@@ -58,6 +59,7 @@ public void Jordehi_OnLRStart(char[] lr_name, int terrorist, int ct, bool random
 	}
 	
 	OpenSettingsMenu(terrorist);
+	
 }
 
 void OpenSettingsMenu(int client)
@@ -124,15 +126,16 @@ void InitiateLR(int client)
 	FormatEx(sTemp, 128, "- Current Mode : (%s)", gB_SurviveMode ? "Easy" : "Hard");
 	Jordehi_UpdateExtraInfo(sTemp);
 	
-	int terrorist = client;
-	int ct = Jordehi_GetClientOpponent(terrorist);
+	Jordehi_LoopClients(i)
+	{
+		if(IsPlayerAlive(i))
+		{
+			SDKHook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+			SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+		}
+	}
 	
-	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
-	
-	CreateTimer(gB_SurviveMode == true ? 1.5 : 0.5, Timer_Molly, client, TIMER_REPEAT);
+	CreateTimer(gB_SurviveMode == true ? 2.0 : 1.0, Timer_Molly, client, TIMER_REPEAT);
 }
 
 public Action Timer_Molly(Handle timer, any terrorist)
@@ -187,20 +190,13 @@ public Action TakeTouch(int client, int &attacker, int &inflictor, float &damage
 
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
 {
-	if(!Jordehi_IsClientValid(attacker))
-	{
-		return Plugin_Continue;
-	}
-	
 	if(gB_LRActivated)
 	{
-		if(damagetype == DMG_BURN)
+		if(!Jordehi_IsClientInLastRequest(victim))
 		{
-			float fRand = GetRandomFloat(1.0, 3.0);
-			IgniteEntity(victim, fRand);
+			damage = 0.0;
+			return Plugin_Changed;
 		}
-		damage = 0.0;
-		return Plugin_Changed;
 	}
 	
 	return Plugin_Continue;

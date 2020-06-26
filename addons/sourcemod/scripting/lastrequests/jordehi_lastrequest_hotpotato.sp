@@ -133,12 +133,16 @@ void InitiateLR(int client)
 	
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
-
-	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
 	
+	Jordehi_LoopClients(i)
+	{
+		if(IsPlayerAlive(i))
+		{
+			SDKHook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+			SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+		}
+	}
+
 	if(!IsSafeTeleport(terrorist, 250.0))
 	{
 		//Even texts from javit Kappa

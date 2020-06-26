@@ -101,6 +101,12 @@ public int Settings_Handler(Menu menu, MenuAction action, int client, int item)
 	{
 		char sInfo[8];
 		menu.GetItem(item, sInfo, 8);
+		
+		if(!gB_LRActivated)
+		{
+			return 0;
+		}
+		
 		int iItem = StringToInt(sInfo);
 		switch(iItem)
 		{
@@ -175,13 +181,14 @@ void InitiateLR(int client)
 		return;
 	}
 	
-	int terrorist = client;
-	int ct = Jordehi_GetClientOpponent(terrorist);
-	
-	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
+	Jordehi_LoopClients(i)
+	{
+		if(IsPlayerAlive(i))
+		{
+			SDKHook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+			SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+		}
+	}
 	
 	CreateTimer(1.0, Race_Timer, client, TIMER_REPEAT);
 }

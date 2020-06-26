@@ -215,12 +215,16 @@ void InitiateLR(int client, int choice)
 	int terrorist = client;
 	int ct = Jordehi_GetClientOpponent(terrorist);
 	
-	SDKHook(terrorist, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(ct, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(terrorist, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(ct, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(terrorist, SDKHook_PreThink, PreThink);
-	SDKHook(ct, SDKHook_PreThink, PreThink);
+	Jordehi_LoopClients(i)
+	{
+		if(IsPlayerAlive(i))
+		{
+			SDKHook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+			SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+			SDKHook(i, SDKHook_PreThink, PreThink);
+		}
+	}
+	
 	
 	GivePlayerItem(terrorist, gS_CSGOSnipers[choice]);
 

@@ -54,6 +54,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Jordehi_PrintToChat", Native_PrintToChat);
 	CreateNative("Jordehi_RegisterVoteCT", Native_RegisterVoteCT);
 	CreateNative("Jordehi_InVoteCT", Native_InVoteCT);
+	CreateNative("Jordehi_UpdateVoteCTInfo", Native_UpdateVoteCTInfo);
 	CreateNative("Jordehi_SetVoteCTWinner", Native_SetVoteCTWinner);
 	CreateNative("Jordehi_SetVIP", Native_SetVIP);
 	CreateNative("Jordehi_StopVoteCT", Native_StopVoteCT);
@@ -158,7 +159,7 @@ void Cron()
 {
 	Jordehi_LoopClients(i)
 	{
-		//PrintVoteCTHUD(i);
+		PrintVoteCTHUD(i);
 	}
 }
 
@@ -271,7 +272,7 @@ public int Panel_Handler(Menu menu, MenuAction action, int client, int item)
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	if (gB_PostVoteCT)
+	if (!gB_PostVoteCT)
 	{
 		return Plugin_Continue;
 	}
@@ -327,6 +328,8 @@ public Action Command_VoteCT(int client, int args)
 	}
 	
 	StartVoteCT();
+	
+	return Plugin_Handled;
 }
 
 void StartVoteCT()
@@ -372,14 +375,11 @@ void StartVoteCT()
 	menu.DisplayVoteToAll(20);
 }
 
-public int VoteCT_Handler(Menu m, MenuAction a, int client, int item)
+public int VoteCT_Handler(Menu m, MenuAction a, int vote_choice, int item)
 {
 	if (a == MenuAction_VoteEnd)
 	{
-		char sInfo[32];
-		m.GetItem(item, sInfo, 32);
-		
-		int iInfo = StringToInt(sInfo);
+		int iInfo = vote_choice+1;
 		GetVoteCTByID(iInfo, current_votect_type);
 		
 		//EmitSoundToAll("jordehi/lastrequest/jordehi_lr_start.mp3", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
@@ -389,6 +389,8 @@ public int VoteCT_Handler(Menu m, MenuAction a, int client, int item)
 		Call_Finish();
 		
 		gB_PostVoteCT = true;
+		
+		gF_VoteEnd = GetEngineTime();
 	}
 	else if (a == MenuAction_VoteCancel)
 	{
@@ -599,6 +601,51 @@ public int Native_StopVoteCT(Handle plugin, int numParams)
 	}
 }
 
+public int Native_UpdateVoteCTInfo(Handle plugin, int numParams)
+{
+	char sExtraInfo[Jordehi_MAX_EXTRAINFO_LENGTH];
+	
+	GetNativeString(1, sExtraInfo, sizeof(sExtraInfo));
+	
+	FormatEx(current_votect_type.type_extrainfo, sizeof(current_votect_type.type_extrainfo), sExtraInfo);
+	
+	char sTemp[328];
+	
+	
+	Panel panel = new Panel();
+	panel.SetTitle("[Jordehi] Choosed VoteCT type :", false);
+	panel.DrawText("================");
+	FormatEx(sTemp, 128, " - Type : %s", current_votect_type.type_name);
+	panel.DrawText(sTemp);
+	panel.DrawText("================");
+	FormatEx(sTemp, 128, "%s", current_votect_type.type_extrainfo);
+	panel.DrawText(sTemp);
+	panel.CurrentKey = 9;
+	panel.DrawItem("Exit", ITEMDRAW_CONTROL);
+	
+	Jordehi_LoopClients(i)
+	{
+		SendPanelToClient(panel, i, LastrequestPanel_Handler, MENU_TIME_FOREVER);
+	}
+	
+	return true;
+}
+
+public int LastrequestPanel_Handler(Menu menu, MenuAction action, int client, int item)
+{
+	if (action == MenuAction_Select)
+	{
+		delete menu;
+	}
+	else if (action == MenuAction_End)
+	{
+		if (menu != null)
+		{
+			delete menu;
+		}
+	}
+	return 0;
+}
 
 public int Native_PrintToChat(Handle handler, int numParams)
 {

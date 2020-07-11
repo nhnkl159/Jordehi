@@ -53,8 +53,6 @@ public void Jordehi_OnVoteCTStart(char[] votect_name)
 		return;
 	}
 	
-	PrintToChatAll("1");
-	
 	//Start Here
 	InitiateVoteCT();
 }
@@ -66,23 +64,17 @@ void InitiateVoteCT()
 		return;
 	}
 	
-	PrintToChatAll("2");
-	
-	if(Jordehi_InVoteCT())
+	if(!Jordehi_InVoteCT())
 	{
 		Jordehi_StopVoteCT(0);
 		return;
 	}
 	
-	PrintToChatAll("3");
-	
 	IntToString(GetRandomInt(10000000, 99999999), gS_RandomString, 64);
 	
 	char sTemp[128];
 	FormatEx(sTemp, 128, "- The Combination is: %s", gS_RandomString);
-	Jordehi_UpdateExtraInfo(sTemp);
-	
-	PrintToChatAll("4");
+	Jordehi_UpdateVoteCTInfo(sTemp);
 }
 
 public void Jordehi_OnVoteCTChat(int client, char[] message)

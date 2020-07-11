@@ -66,7 +66,7 @@ void InitiateVoteCT()
 		return;
 	}
 	
-	if(Jordehi_InVoteCT())
+	if(!Jordehi_InVoteCT())
 	{
 		Jordehi_StopVoteCT(0);
 		return;
